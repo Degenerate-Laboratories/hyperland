@@ -3,8 +3,10 @@
 import { ParcelCard } from '@/components/ParcelCard';
 import { useHyperLand } from '@/lib/hyperland-context';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function Marketplace() {
+  const router = useRouter();
   const {
     listedParcels,
     auctionParcels,
@@ -13,6 +15,8 @@ export default function Marketplace() {
     isLoading,
     isMockMode,
     address,
+    landBalance,
+    getParcel,
   } = useHyperLand();
 
   const [filter, setFilter] = useState<'all' | 'listed' | 'auction'>('all');
@@ -30,6 +34,28 @@ export default function Marketplace() {
       return;
     }
 
+    // Check if user has enough LAND tokens
+    const parcel = getParcel(tokenId);
+    if (parcel && parcel.listing) {
+      const price = parseFloat(parcel.listing.price);
+      const balance = parseFloat(landBalance);
+
+      if (balance < price) {
+        const confirmed = confirm(
+          `Insufficient LAND tokens!\n\n` +
+          `You need: ${price} LAND\n` +
+          `Your balance: ${balance} LAND\n` +
+          `Shortage: ${(price - balance).toFixed(2)} LAND\n\n` +
+          `Would you like to buy more LAND tokens?`
+        );
+
+        if (confirmed) {
+          router.push('/buy-land');
+        }
+        return;
+      }
+    }
+
     try {
       await buyParcel(tokenId);
       alert('Purchase successful!');
@@ -42,6 +68,25 @@ export default function Marketplace() {
   async function handleBid(tokenId: number, amount: string) {
     if (!address) {
       alert('Please connect your wallet');
+      return;
+    }
+
+    // Check if user has enough LAND tokens
+    const bidAmount = parseFloat(amount);
+    const balance = parseFloat(landBalance);
+
+    if (balance < bidAmount) {
+      const confirmed = confirm(
+        `Insufficient LAND tokens!\n\n` +
+        `Bid amount: ${bidAmount} LAND\n` +
+        `Your balance: ${balance} LAND\n` +
+        `Shortage: ${(bidAmount - balance).toFixed(2)} LAND\n\n` +
+        `Would you like to buy more LAND tokens?`
+      );
+
+      if (confirmed) {
+        router.push('/buy-land');
+      }
       return;
     }
 

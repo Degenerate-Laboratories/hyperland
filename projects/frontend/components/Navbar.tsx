@@ -11,6 +11,9 @@ export function Navbar() {
           HyperLand
         </Link>
         <div className="flex items-center space-x-4">
+          <Link href="/buy-land" className="hover:text-gray-300">
+            Buy LAND
+          </Link>
           <Link href="/marketplace" className="hover:text-gray-300">
             Marketplace
           </Link>

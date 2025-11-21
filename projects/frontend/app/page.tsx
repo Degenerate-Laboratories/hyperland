@@ -22,8 +22,14 @@ export default function Home() {
         )}
         <div className="space-x-4">
           <Link
-            href="/marketplace"
+            href="/buy-land"
             className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 inline-block"
+          >
+            Buy LAND Tokens
+          </Link>
+          <Link
+            href="/marketplace"
+            className="bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-800 inline-block"
           >
             Explore Marketplace
           </Link>

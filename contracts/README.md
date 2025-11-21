@@ -1,66 +1,153 @@
-## Foundry
+# HyperLand Smart Contracts
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+Smart contracts for the HyperLand blockchain land management ecosystem on Base.
 
-Foundry consists of:
+## Contracts
 
-- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
-- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
-- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
-- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+### LAND Token (ERC-20)
+- **Symbol**: LAND
+- **Total Supply**: 21,000,000 tokens
+- **Decimals**: 18
+- **Standard**: ERC-20 (OpenZeppelin v5.5.0)
+- **Network**: Base Mainnet
 
-## Documentation
+The LAND token is the primary utility token for the HyperLand ecosystem, used for:
+- Purchasing virtual land parcels
+- Staking and governance
+- Ecosystem rewards
 
-https://book.getfoundry.sh/
+## Development
 
-## Usage
+Built with [Foundry](https://book.getfoundry.sh/), a blazing fast, portable and modular toolkit for Ethereum development.
+
+### Prerequisites
+
+```bash
+# Install Foundry
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+```
+
+### Setup
+
+```bash
+# Install dependencies
+forge install
+
+# Copy environment template
+cp .env.example .env
+
+# Edit .env with your values
+nano .env
+```
 
 ### Build
 
-```shell
-$ forge build
+```bash
+forge build
 ```
 
 ### Test
 
-```shell
-$ forge test
-```
+```bash
+# Run all tests
+forge test
 
-### Format
+# Run with verbosity
+forge test -vv
 
-```shell
-$ forge fmt
-```
+# Run specific test
+forge test --match-test testInitialSupply -vv
 
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
+# Generate gas report
+forge test --gas-report
 ```
 
 ### Deploy
 
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete deployment guide.
+
+```bash
+# Dry run (simulation)
+forge script script/DeployLAND.s.sol:DeployLAND --rpc-url base
+
+# Deploy to Base mainnet
+forge script script/DeployLAND.s.sol:DeployLAND \
+  --rpc-url base \
+  --broadcast \
+  --verify
 ```
 
-### Cast
+### Local Development
 
-```shell
-$ cast <subcommand>
+```bash
+# Start local node
+anvil
+
+# Deploy to local node (different terminal)
+forge script script/DeployLAND.s.sol:DeployLAND \
+  --rpc-url http://localhost:8545 \
+  --broadcast
 ```
 
-### Help
+## Project Structure
 
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
 ```
+contracts/
+├── src/
+│   └── LANDToken.sol          # LAND ERC-20 token
+├── script/
+│   ├── DeployLAND.s.sol       # Deployment script
+│   └── CheckBalance.s.sol     # Balance checker
+├── test/
+│   └── LANDToken.t.sol        # Token tests
+├── deployments/               # Deployment artifacts
+├── foundry.toml              # Foundry config
+├── .env.example              # Environment template
+├── DEPLOYMENT.md             # Deployment guide
+└── README.md                 # This file
+```
+
+## Testing
+
+All tests pass with 100% coverage of core functionality:
+
+```
+✅ testInitialSupply           - Verify 21M supply
+✅ testTokenMetadata          - Check name, symbol, decimals
+✅ testAdminOwnership         - Verify admin ownership
+✅ testTransfer               - Test token transfers
+✅ testTransferFrom           - Test delegated transfers
+✅ testApprove                - Test approvals
+✅ testRevert*                - Test failure cases
+```
+
+Run tests:
+```bash
+forge test -vv
+```
+
+## Gas Optimization
+
+The contract is optimized for gas efficiency:
+- Uses OpenZeppelin's battle-tested implementations
+- Minimal storage operations
+- Optimized with Solidity 0.8.20 IR optimizer
+
+## Security
+
+- Built on OpenZeppelin v5.5.0 (audited, battle-tested)
+- Fixed supply (no minting after deployment)
+- Admin ownership for governance
+- Comprehensive test coverage
+- Follows ERC-20 standard
+
+## License
+
+MIT
+
+## Support
+
+- Foundry docs: https://book.getfoundry.sh/
+- Base docs: https://docs.base.org/
+- OpenZeppelin: https://docs.openzeppelin.com/

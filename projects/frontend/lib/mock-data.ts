@@ -155,9 +155,21 @@ export class MockHyperLandState {
   // Transaction simulations
   buyLAND(address: string, ethAmount: string): void {
     const user = this.getUser(address);
-    const landAmount = parseFloat(ethAmount) * 1000 * 0.8; // 80% to buyer
+    const ethValue = parseFloat(ethAmount);
+    const currentEth = parseFloat(user.ethBalance);
+
+    // Validate sufficient ETH balance
+    if (ethValue > currentEth) {
+      throw new Error(`Insufficient ETH balance. You have ${currentEth} ETH but need ${ethValue} ETH`);
+    }
+
+    if (ethValue <= 0) {
+      throw new Error('ETH amount must be greater than 0');
+    }
+
+    const landAmount = ethValue * 1000 * 0.8; // 80% to buyer
     user.landBalance = (parseFloat(user.landBalance) + landAmount).toString();
-    user.ethBalance = (parseFloat(user.ethBalance) - parseFloat(ethAmount)).toFixed(4);
+    user.ethBalance = (currentEth - ethValue).toFixed(4);
   }
 
   listParcel(tokenId: number, price: string, seller: string): void {
@@ -169,17 +181,30 @@ export class MockHyperLandState {
 
   buyParcel(tokenId: number, buyer: string): void {
     const parcel = this.parcels.get(tokenId);
-    if (!parcel || !parcel.listing) return;
+    if (!parcel) {
+      throw new Error(`Parcel ${tokenId} not found`);
+    }
+
+    if (!parcel.listing) {
+      throw new Error(`Parcel ${tokenId} is not listed for sale`);
+    }
 
     const buyerData = this.getUser(buyer);
     const sellerData = this.getUser(parcel.owner);
 
     const price = parseFloat(parcel.listing.price);
+    const buyerBalance = parseFloat(buyerData.landBalance);
+
+    // Validate sufficient LAND balance
+    if (buyerBalance < price) {
+      throw new Error(`Insufficient LAND tokens. You have ${buyerBalance} LAND but need ${price} LAND`);
+    }
+
     const fee = price * 0.2;
     const sellerProceeds = price - fee;
 
     // Update balances
-    buyerData.landBalance = (parseFloat(buyerData.landBalance) - price).toString();
+    buyerData.landBalance = (buyerBalance - price).toString();
     sellerData.landBalance = (parseFloat(sellerData.landBalance) + sellerProceeds).toString();
 
     // Transfer ownership
@@ -205,15 +230,35 @@ export class MockHyperLandState {
 
   placeBid(tokenId: number, bidder: string, amount: string): void {
     const parcel = this.parcels.get(tokenId);
-    if (!parcel || !parcel.inAuction || !parcel.auction) return;
+    if (!parcel) {
+      throw new Error(`Parcel ${tokenId} not found`);
+    }
+
+    if (!parcel.inAuction || !parcel.auction) {
+      throw new Error(`Parcel ${tokenId} is not in auction`);
+    }
 
     const user = this.getUser(bidder);
-    user.landBalance = (parseFloat(user.landBalance) - parseFloat(amount)).toString();
+    const bidAmount = parseFloat(amount);
+    const userBalance = parseFloat(user.landBalance);
+
+    // Validate sufficient LAND balance
+    if (userBalance < bidAmount) {
+      throw new Error(`Insufficient LAND tokens. You have ${userBalance} LAND but need ${bidAmount} LAND`);
+    }
+
+    // Validate bid is higher than current highest bid
+    const currentHighestBid = parseFloat(parcel.auction.highestBid);
+    if (bidAmount <= currentHighestBid) {
+      throw new Error(`Bid must be higher than current highest bid of ${currentHighestBid} LAND`);
+    }
+
+    user.landBalance = (userBalance - bidAmount).toString();
 
     // Refund previous bidder
     if (parcel.auction.highestBidder !== '0x0000000000000000000000000000000000000000') {
       const prevBidder = this.getUser(parcel.auction.highestBidder);
-      prevBidder.landBalance = (parseFloat(prevBidder.landBalance) + parseFloat(parcel.auction.highestBid)).toString();
+      prevBidder.landBalance = (parseFloat(prevBidder.landBalance) + currentHighestBid).toString();
     }
 
     parcel.auction.highestBid = amount;

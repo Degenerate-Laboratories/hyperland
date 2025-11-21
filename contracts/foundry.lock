@@ -1,0 +1,11 @@
+{
+  "../projects/hypery-hyperland": {
+    "rev": "97e38279c8f1c5210402a886a166e20e142f1030"
+  },
+  "lib/openzeppelin-contracts": {
+    "tag": {
+      "name": "v5.5.0",
+      "rev": "fcbae5394ae8ad52d8e580a3477db99814b9d565"
+    }
+  }
+}
