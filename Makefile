@@ -1,4 +1,4 @@
-.PHONY: help init install build dev start test clean landing hyperfy all kill-ports
+.PHONY: help init install build dev start test clean landing hyperfy all kill-ports db-up db-down db-reset db-logs db-shell
 
 # Colors for output
 GREEN  := \033[0;32m
@@ -16,6 +16,32 @@ help: ## Show this help message
 	@echo ''
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  ${YELLOW}%-20s${NC} %s\n", $$1, $$2}'
 	@echo ''
+
+# Database commands
+db-up: ## Start PostgreSQL database
+	@echo "${GREEN}Starting PostgreSQL...${NC}"
+	docker-compose up -d postgres
+	@echo "${YELLOW}Waiting for PostgreSQL to be ready...${NC}"
+	@sleep 3
+	@echo "${GREEN}✓ PostgreSQL is ready at localhost:5432${NC}"
+
+db-down: ## Stop PostgreSQL database
+	@echo "${YELLOW}Stopping PostgreSQL...${NC}"
+	docker-compose down
+	@echo "${GREEN}✓ PostgreSQL stopped${NC}"
+
+db-reset: ## Reset database (WARNING: deletes all data)
+	@echo "${RED}Resetting database (all data will be lost)...${NC}"
+	docker-compose down -v
+	docker-compose up -d postgres
+	@sleep 3
+	@echo "${GREEN}✓ Database reset complete${NC}"
+
+db-logs: ## Show PostgreSQL logs
+	docker-compose logs -f postgres
+
+db-shell: ## Connect to PostgreSQL shell
+	docker-compose exec postgres psql -U hyperland -d hyperland_dev
 
 init: ## Initialize git submodules
 	@echo "${GREEN}Initializing submodules...${NC}"
