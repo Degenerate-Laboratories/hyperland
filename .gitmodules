@@ -1,0 +1,3 @@
+[submodule "projects/hypery-hyperland"]
+	path = projects/hypery-hyperland
+	url = https://github.com/Degenerate-Laboratories/hyperfy-hyperland.git
