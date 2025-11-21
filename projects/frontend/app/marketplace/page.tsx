@@ -1,92 +1,141 @@
+'use client';
+
+import { ParcelCard } from '@/components/ParcelCard';
+import { useHyperLand } from '@/lib/hyperland-context';
+import { useState } from 'react';
+
 export default function Marketplace() {
-  // Mock data - will be replaced with smart contract data
-  const listings = [
-    {
-      id: 1,
-      coordinates: { x: 10, y: 20 },
-      size: 100,
-      price: 500,
-      seller: "0x1234...5678",
-    },
-    {
-      id: 2,
-      coordinates: { x: 15, y: 25 },
-      size: 150,
-      price: 750,
-      seller: "0xabcd...efgh",
-    },
-    {
-      id: 3,
-      coordinates: { x: 5, y: 30 },
-      size: 200,
-      price: 1000,
-      seller: "0x9876...4321",
-    },
-  ];
+  const {
+    listedParcels,
+    auctionParcels,
+    buyParcel,
+    placeBid,
+    isLoading,
+    isMockMode,
+    address,
+  } = useHyperLand();
+
+  const [filter, setFilter] = useState<'all' | 'listed' | 'auction'>('all');
+
+  const displayParcels =
+    filter === 'listed'
+      ? listedParcels
+      : filter === 'auction'
+      ? auctionParcels
+      : [...listedParcels, ...auctionParcels];
+
+  async function handleBuy(tokenId: number) {
+    if (!address) {
+      alert('Please connect your wallet');
+      return;
+    }
+
+    try {
+      await buyParcel(tokenId);
+      alert('Purchase successful!');
+    } catch (error) {
+      console.error('Purchase failed:', error);
+      alert('Purchase failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    }
+  }
+
+  async function handleBid(tokenId: number, amount: string) {
+    if (!address) {
+      alert('Please connect your wallet');
+      return;
+    }
+
+    try {
+      await placeBid(tokenId, amount);
+      alert('Bid placed successfully!');
+    } catch (error) {
+      console.error('Bid failed:', error);
+      alert('Bid failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    }
+  }
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex justify-between items-center">
-        <h1 className="text-4xl font-bold">Marketplace</h1>
-        <div className="space-x-2">
-          <select className="border rounded px-4 py-2 dark:bg-gray-800">
-            <option>All Sizes</option>
-            <option>Small (0-100)</option>
-            <option>Medium (100-200)</option>
-            <option>Large (200+)</option>
-          </select>
-          <select className="border rounded px-4 py-2 dark:bg-gray-800">
-            <option>Price: Low to High</option>
-            <option>Price: High to Low</option>
-            <option>Size: Small to Large</option>
-            <option>Size: Large to Small</option>
-          </select>
+        <div>
+          <h1 className="text-3xl font-bold">Marketplace</h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Browse and purchase land parcels
+          </p>
+          {isMockMode && (
+            <p className="text-sm text-orange-600 mt-1">
+              🟠 Running in mock mode (offline data)
+            </p>
+          )}
+        </div>
+
+        {/* Filter */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setFilter('all')}
+            className={`px-4 py-2 rounded-lg font-medium ${
+              filter === 'all'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+            }`}
+          >
+            All ({listedParcels.length + auctionParcels.length})
+          </button>
+          <button
+            onClick={() => setFilter('listed')}
+            className={`px-4 py-2 rounded-lg font-medium ${
+              filter === 'listed'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+            }`}
+          >
+            Listed ({listedParcels.length})
+          </button>
+          <button
+            onClick={() => setFilter('auction')}
+            className={`px-4 py-2 rounded-lg font-medium ${
+              filter === 'auction'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+            }`}
+          >
+            Auctions ({auctionParcels.length})
+          </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {listings.map((listing) => (
-          <div
-            key={listing.id}
-            className="border rounded-lg p-6 bg-white dark:bg-gray-800 hover:shadow-lg transition-shadow"
-          >
-            <div className="mb-4">
-              <h3 className="text-xl font-bold mb-2">
-                Parcel #{listing.id}
-              </h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                Location: ({listing.coordinates.x}, {listing.coordinates.y})
-              </p>
-              <p className="text-gray-600 dark:text-gray-300">
-                Size: {listing.size} sq units
-              </p>
-            </div>
-            <div className="mb-4">
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Seller: {listing.seller}
-              </p>
-            </div>
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Price
-                </p>
-                <p className="text-2xl font-bold text-green-600">
-                  {listing.price} LAND
-                </p>
-              </div>
-              <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded">
-                Buy Now
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {listings.length === 0 && (
+      {/* Loading */}
+      {isLoading && (
         <div className="text-center py-12">
-          <p className="text-xl text-gray-600 dark:text-gray-300">
-            No parcels currently listed for sale
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading parcels...</p>
+        </div>
+      )}
+
+      {/* Parcels Grid */}
+      {!isLoading && displayParcels.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {displayParcels.map((parcel) => (
+            <ParcelCard
+              key={parcel.tokenId}
+              parcel={parcel}
+              onBuy={handleBuy}
+              onPlaceBid={handleBid}
+              showActions={true}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!isLoading && displayParcels.length === 0 && (
+        <div className="text-center py-12 bg-gray-100 dark:bg-gray-800 rounded-lg">
+          <p className="text-xl text-gray-600 dark:text-gray-400">
+            No parcels available in the marketplace
+          </p>
+          <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
+            Check back later or try a different filter
           </p>
         </div>
       )}

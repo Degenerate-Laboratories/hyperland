@@ -1,6 +1,12 @@
+'use client';
+
 import Link from "next/link";
+import { useHyperLand } from '@/lib/hyperland-context';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 export default function Home() {
+  const { stats, isMockMode, isConnected } = useHyperLand();
+
   return (
     <div className="space-y-8">
       {/* Hero Section */}
@@ -9,6 +15,11 @@ export default function Home() {
         <p className="text-xl mb-8">
           Own, trade, and manage virtual land parcels on the blockchain
         </p>
+        {isMockMode && (
+          <p className="text-sm text-orange-200 mb-4">
+            🟠 Running in mock mode - Connect wallet for blockchain features
+          </p>
+        )}
         <div className="space-x-4">
           <Link
             href="/marketplace"
@@ -58,19 +69,19 @@ export default function Home() {
         <h2 className="text-3xl font-bold mb-6 text-center">Platform Stats</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-center">
           <div>
-            <p className="text-4xl font-bold text-blue-600">1,234</p>
+            <p className="text-4xl font-bold text-blue-600">{stats.totalParcels}</p>
             <p className="text-gray-600 dark:text-gray-300">Total Parcels</p>
           </div>
           <div>
-            <p className="text-4xl font-bold text-green-600">567</p>
+            <p className="text-4xl font-bold text-green-600">{stats.activeOwners}</p>
             <p className="text-gray-600 dark:text-gray-300">Active Owners</p>
           </div>
           <div>
-            <p className="text-4xl font-bold text-purple-600">89</p>
+            <p className="text-4xl font-bold text-purple-600">{stats.listedParcels}</p>
             <p className="text-gray-600 dark:text-gray-300">Parcels for Sale</p>
           </div>
           <div>
-            <p className="text-4xl font-bold text-orange-600">12</p>
+            <p className="text-4xl font-bold text-orange-600">{stats.auctionParcels}</p>
             <p className="text-gray-600 dark:text-gray-300">Active Auctions</p>
           </div>
         </div>
@@ -80,11 +91,13 @@ export default function Home() {
       <section className="text-center py-12">
         <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
         <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
-          Connect your wallet to start exploring HyperLand
+          {isConnected
+            ? "Start exploring HyperLand and manage your land parcels"
+            : "Connect your wallet to start exploring HyperLand"}
         </p>
-        <button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg text-lg font-semibold">
-          Connect Wallet
-        </button>
+        <div className="flex justify-center">
+          <ConnectButton />
+        </div>
       </section>
     </div>
   );
