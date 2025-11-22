@@ -52,29 +52,29 @@ export function ParcelCard({
   }
 
   return (
-    <div className="border rounded-lg p-4 bg-white dark:bg-gray-800 hover:shadow-lg transition-shadow">
+    <div className="glass rounded-lg p-4 hover:border-cyan-400 hover:shadow-cyan transition-all duration-300 border border-white/20">
       {/* Header */}
       <div className="flex justify-between items-start mb-3">
         <div>
-          <h3 className="font-bold text-lg">Parcel #{parcel.tokenId}</h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <h3 className="font-bold text-lg text-white">Parcel #{parcel.tokenId}</h3>
+          <p className="text-sm text-white/80">
             {formatCoordinates(parcel.x, parcel.y)}
           </p>
         </div>
         <div className="text-right">
           {isInAuction && (
-            <span className="px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full">
-              🔨 Auction
+            <span className="px-2 py-1 bg-orange-500/20 text-orange-300 text-xs rounded-full border border-orange-400/30">
+              Auction
             </span>
           )}
           {isListed && (
-            <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-              📦 Listed
+            <span className="px-2 py-1 bg-green-500/20 text-green-300 text-xs rounded-full border border-green-400/30">
+              Listed
             </span>
           )}
           {isAvailable && (
-            <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-              ✨ Available
+            <span className="px-2 py-1 bg-blue-500/20 text-blue-300 text-xs rounded-full border border-blue-400/30">
+              Available
             </span>
           )}
         </div>
@@ -83,36 +83,36 @@ export function ParcelCard({
       {/* Details */}
       <div className="space-y-2 text-sm mb-4">
         <div className="flex justify-between">
-          <span className="text-gray-600 dark:text-gray-400">Size:</span>
-          <span className="font-medium">{parcel.size}x{parcel.size}</span>
+          <span className="text-white/80">Size:</span>
+          <span className="font-medium text-white">{parcel.size}x{parcel.size}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-gray-600 dark:text-gray-400">Assessed Value:</span>
-          <span className="font-medium">{parcel.assessedValue} LAND</span>
+          <span className="text-white/80">Assessed Value:</span>
+          <span className="font-medium text-white">{parcel.assessedValue} LAND</span>
         </div>
         {!isAvailable && (
           <div className="flex justify-between">
-            <span className="text-gray-600 dark:text-gray-400">Owner:</span>
-            <span className="font-medium">{shortenAddress(parcel.owner)}</span>
+            <span className="text-white/80">Owner:</span>
+            <span className="font-medium text-white">{shortenAddress(parcel.owner)}</span>
           </div>
         )}
 
         {isListed && parcel.listing && (
-          <div className="flex justify-between border-t pt-2 mt-2">
-            <span className="text-gray-600 dark:text-gray-400">List Price:</span>
-            <span className="font-bold text-green-600">{parcel.listing.price} LAND</span>
+          <div className="flex justify-between border-t border-white/10 pt-2 mt-2">
+            <span className="text-white/80">List Price:</span>
+            <span className="font-bold text-green-400">{parcel.listing.price} LAND</span>
           </div>
         )}
 
         {isInAuction && parcel.auction && (
           <>
-            <div className="flex justify-between border-t pt-2 mt-2">
-              <span className="text-gray-600 dark:text-gray-400">Highest Bid:</span>
-              <span className="font-bold text-orange-600">{parcel.auction.highestBid} LAND</span>
+            <div className="flex justify-between border-t border-white/10 pt-2 mt-2">
+              <span className="text-white/80">Highest Bid:</span>
+              <span className="font-bold text-orange-400">{parcel.auction.highestBid} LAND</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600 dark:text-gray-400">Ends:</span>
-              <span className="text-sm">
+              <span className="text-white/80">Ends:</span>
+              <span className="text-sm text-white">
                 {new Date(parcel.auction.endTime).toLocaleDateString()}
               </span>
             </div>
@@ -127,7 +127,7 @@ export function ParcelCard({
           {isListed && !isOwner && parcel.listing && (
             <button
               onClick={() => onBuy?.(parcel.tokenId)}
-              className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-medium"
+              className="w-full bg-gradient-to-br from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white py-2 rounded-lg font-medium transition-all duration-200"
             >
               Buy for {parcel.listing.price} LAND
             </button>
@@ -141,12 +141,12 @@ export function ParcelCard({
                 value={bidAmount}
                 onChange={(e) => setBidAmount(e.target.value)}
                 placeholder="Bid amount (LAND)"
-                className="w-full border rounded-lg px-3 py-2 text-sm"
+                className="w-full border border-white/20 bg-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/50"
               />
               <button
                 onClick={handleBid}
                 disabled={!bidAmount}
-                className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white py-2 rounded-lg font-medium"
+                className="w-full bg-gradient-to-br from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white py-2 rounded-lg font-medium transition-all duration-200"
               >
                 Place Bid
               </button>
@@ -163,13 +163,13 @@ export function ParcelCard({
                     value={listPrice}
                     onChange={(e) => setListPrice(e.target.value)}
                     placeholder="Price in LAND"
-                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                    className="w-full border border-white/20 bg-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/50"
                   />
                   <div className="flex gap-2">
                     <button
                       onClick={handleList}
                       disabled={!listPrice}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white py-2 rounded-lg text-sm font-medium"
+                      className="flex-1 bg-gradient-to-br from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white py-2 rounded-lg text-sm font-medium transition-all duration-200"
                     >
                       Confirm
                     </button>
@@ -185,13 +185,13 @@ export function ParcelCard({
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => setShowListForm(true)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-medium"
+                    className="bg-gradient-to-br from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white py-2 rounded-lg text-sm font-medium transition-all duration-200"
                   >
                     List for Sale
                   </button>
                   <button
                     onClick={() => onPayTaxes?.(parcel.tokenId)}
-                    className="bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg text-sm font-medium"
+                    className="bg-gradient-to-br from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white py-2 rounded-lg text-sm font-medium transition-all duration-200"
                   >
                     Pay Taxes
                   </button>

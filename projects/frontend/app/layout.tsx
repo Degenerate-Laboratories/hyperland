@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
+import { ChakraProviderWrapper } from "./chakra-provider";
 import { Navbar } from "@/components/Navbar";
 import '@rainbow-me/rainbowkit/styles.css';
 
@@ -17,15 +18,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <Providers>
-          <Navbar />
-          <main className="container mx-auto p-4">{children}</main>
-          <footer className="bg-gray-800 text-white p-4 mt-8">
-            <div className="container mx-auto text-center">
-              <p>&copy; 2024 HyperLand. Powered by blockchain technology.</p>
-            </div>
-          </footer>
-        </Providers>
+        <ChakraProviderWrapper>
+          <Providers>
+            <Navbar />
+            <main className="px-4 md:px-8 lg:px-12 mt-20">{children}</main>
+          </Providers>
+        </ChakraProviderWrapper>
       </body>
     </html>
   );
