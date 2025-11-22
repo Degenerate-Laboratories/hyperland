@@ -1,20 +1,28 @@
 # HyperLand - Blockchain Land Management System
 
-A decentralized land management platform powered by smart contracts, featuring NFT parcels, a utility token (LAND), property taxes, and an auction system.
+A decentralized land management platform on Base blockchain, featuring NFT land parcels with property taxes, a LAND utility token with AMM trading, and a dynamic marketplace.
+
+**🚀 Status**: Live on Base Mainnet | [View Contracts on BaseScan](https://basescan.org/address/0xB22b072503a381A2Db8309A8dD46789366D55074)
 
 ## 🏗️ Project Structure
 
 ```
 hyperland/
-├── contracts/          # Foundry smart contracts
-│   ├── src/           # Solidity contracts
-│   ├── test/          # Contract tests
-│   └── script/        # Deployment scripts
-├── frontend/          # Next.js web application
+├── contracts/          # Foundry smart contracts (Solidity)
+│   ├── src/           # Core contracts (HyperLandCore, LAND, LandDeed)
+│   ├── test/          # Comprehensive test suite
+│   └── script/        # Deployment & utility scripts
+├── projects/frontend/ # Next.js 15 web application
 │   ├── app/           # App router pages
-│   └── components/    # React components
-├── docs/              # Documentation
-└── README.md          # This file
+│   ├── components/    # React components
+│   └── lib/           # Services, ABIs, utilities
+├── packages/hyperland/# SDK and backend utilities
+├── docs/              # Comprehensive documentation
+│   ├── status/        # Current status & updates
+│   ├── deployment/    # Deployment guides
+│   ├── guides/        # User & developer guides
+│   └── contracts/     # Smart contract docs
+└── scripts/           # Utility scripts
 ```
 
 ## 🎮 Core Features
@@ -67,8 +75,16 @@ forge test
 
 ## 📖 Documentation
 
-See the `/docs` directory for detailed documentation:
-- [Smart Contracts Plan](docs/smart-contracts-plan.md) - Comprehensive contract architecture
+**Quick Links**:
+- **[Current Status](docs/status/MAINNET_TRADING_STATUS.md)** - Latest deployment status & next steps
+- **[Setup Guide](SETUP.md)** - Quick start for developers
+- **[Full Documentation Index](docs/README.md)** - Complete documentation library
+
+**Key Documents**:
+- [V3 Architecture](docs/status/V3_SIMPLIFIED_DESIGN.md) - Current system design
+- [Smart Contracts](docs/contracts/smart-contracts-plan.md) - Contract architecture
+- [Wallet Setup](docs/guides/WALLET_AUTH_QUICKSTART.md) - Connect your wallet
+- [Deployment Guide](docs/deployment/MAINNET_DEPLOYMENT.md) - Production deployment
 
 ## 🛠️ Tech Stack
 
@@ -172,37 +188,65 @@ npm start  # or deploy to Vercel
 
 MIT License - See LICENSE file for details
 
+## 🌐 Deployed Contracts (Base Mainnet)
+
+| Contract | Address | Explorer |
+|----------|---------|----------|
+| **HyperLandCore** | `0xB22b072503a381A2Db8309A8dD46789366D55074` | [View](https://basescan.org/address/0xB22b072503a381A2Db8309A8dD46789366D55074) |
+| **LAND Token** | `0x919e6e2b36b6944F52605bC705Ff609AFcb7c797` | [View](https://basescan.org/token/0x919e6e2b36b6944F52605bC705Ff609AFcb7c797) |
+| **LandDeed NFT** | `0x28f5B7A911f61e875cAaa16819211Bf25dCA0adf` | [View](https://basescan.org/address/0x28f5B7A911f61e875cAaa16819211Bf25dCA0adf) |
+
+**DEX Integration**: Aerodrome Finance (Base's leading DEX)
+- Trading: LAND/WETH volatile pool
+- Router: `0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43`
+
 ## 🔗 Links
 
 - [GitHub Repository](https://github.com/Degenerate-Laboratories/hyperland)
+- [Live Application](https://hyperland.vercel.app) (Coming Soon)
+- [BaseScan Contracts](https://basescan.org/address/0xB22b072503a381A2Db8309A8dD46789366D55074)
+- [Documentation](docs/README.md)
+
+**Resources**:
 - [Foundry Documentation](https://book.getfoundry.sh/)
 - [Next.js Documentation](https://nextjs.org/docs)
+- [Base Network](https://base.org)
 
 ## 🚧 Roadmap
 
-### Phase 1: MVP (Current)
-- ✅ Smart contract planning
-- ✅ Frontend structure
-- 🚧 Smart contract implementation
-- 🚧 Frontend-blockchain integration
+### Phase 1: Foundation ✅ COMPLETE
+- ✅ Smart contract architecture & deployment
+- ✅ Base Mainnet deployment (all contracts verified)
+- ✅ Frontend structure & wallet integration
+- ✅ LAND token with DEX integration
 
-### Phase 2: Core Features
-- LAND token minting
-- Parcel minting and trading
-- Tax system implementation
-- Lien and auction mechanics
+### Phase 2: Trading & Marketplace 🔄 IN PROGRESS
+- ✅ Aerodrome DEX integration
+- ✅ Real-time price oracle
+- ✅ Buy/sell LAND with ETH
+- 🚧 Liquidity pool creation ($1M target market cap)
+- 🚧 Parcel marketplace (primary sales via bonding curve)
+- 🚧 Secondary market for parcel trading
 
-### Phase 3: Enhancement
-- Dynamic assessed values
+### Phase 3: Core Features ⏳ NEXT
+- Property tax system activation
+- Tax payment and tracking
+- Delinquency and lien mechanics
+- Parcel auction system
+- 3D interactive map
+
+### Phase 4: Enhancement 📅 PLANNED
+- Dynamic parcel valuations
 - Neighbor-based pricing
-- Parcel improvements
-- Mobile responsiveness
+- Parcel improvements/upgrades
+- DAO governance for parameters
+- Mobile app
 
-### Phase 4: Advanced Features
-- DAO governance
-- Rental system
-- Parcel upgrades
-- Layer 2 deployment
+### Phase 5: Scale 🎯 FUTURE
+- Cross-chain expansion
+- Rental/lease system
+- Metaverse integrations
+- Enterprise land management tools
 
 ---
 

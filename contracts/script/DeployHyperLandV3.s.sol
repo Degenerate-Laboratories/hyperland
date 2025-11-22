@@ -60,11 +60,11 @@ contract DeployHyperLandV3 is Script {
         console.log("\n========================================");
         console.log("V3 IMPROVEMENTS");
         console.log("========================================");
-        console.log("✅ Single contract - no ownership issues");
-        console.log("✅ Direct NFT minting - no external calls");
-        console.log("✅ Exponential bonding curve - fast growth");
-        console.log("✅ Proper router interface - no call() bugs");
-        console.log("✅ Simplified architecture - easier to maintain");
+        console.log("[OK] Single contract - no ownership issues");
+        console.log("[OK] Direct NFT minting - no external calls");
+        console.log("[OK] Exponential bonding curve - fast growth");
+        console.log("[OK] Proper router interface - no call() bugs");
+        console.log("[OK] Simplified architecture - easier to maintain");
 
         console.log("\n========================================");
         console.log("Next Steps");
