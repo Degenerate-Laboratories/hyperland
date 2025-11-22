@@ -27,7 +27,7 @@ export interface SwapQuote {
  * Hook for buying LAND tokens with ETH
  */
 export function useBuyLand() {
-  const { writeContract, data: hash, isPending } = useWriteContract();
+  const { writeContractAsync, data: hash, isPending } = useWriteContract();
   const { isLoading, isSuccess } = useWaitForTransactionReceipt({ hash });
 
   // Get pool reserves for quote calculation
@@ -47,14 +47,19 @@ export function useBuyLand() {
 
   async function buyLand(
     ethAmount: string,
-    slippageBps: number = 200 // 2% default
-  ): Promise<void> {
+    slippageBps: number = 200, // 2% default
+    userAddress?: `0x${string}`
+  ): Promise<`0x${string}`> {
     if (!LP_POOL) {
       throw new Error('Liquidity pool not created yet. Cannot buy LAND.');
     }
 
     if (!reserves || !token0) {
       throw new Error('Failed to fetch pool data');
+    }
+
+    if (!userAddress) {
+      throw new Error('User wallet address is required');
     }
 
     const [reserve0, reserve1] = reserves as [bigint, bigint, bigint];
@@ -70,25 +75,24 @@ export function useBuyLand() {
     // Apply slippage tolerance
     const minAmountOut = (amountOut * BigInt(10000 - slippageBps)) / 10000n;
 
-    // Build route
-    const route = [
-      {
-        from: WETH,
-        to: LAND_TOKEN,
-        stable: false, // Volatile pool
-      },
-    ];
+    // Build path (Uniswap V2 style: [WETH, LAND])
+    const path = [WETH, LAND_TOKEN];
 
     // Deadline: 20 minutes from now
     const deadline = Math.floor(Date.now() / 1000) + 1200;
 
-    await writeContract({
+    // Execute transaction and wait for user to sign
+    const txHash = await writeContractAsync({
       address: ROUTER,
       abi: AERODROME_ROUTER_ABI,
       functionName: 'swapExactETHForTokens',
-      args: [minAmountOut, route, undefined as any, BigInt(deadline)],
+      args: [minAmountOut, path, userAddress, BigInt(deadline)],
       value: amountIn,
     });
+
+    // Transaction submitted - hash returned only after user signs
+    console.log('Transaction submitted:', txHash);
+    return txHash;
   }
 
   function getQuote(ethAmount: string): SwapQuote | null {
@@ -110,7 +114,7 @@ export function useBuyLand() {
       amountOut: formatUnits(amountOut, 18),
       priceImpact,
       minimumReceived: formatUnits(minReceived, 18),
-      route: [{ from: WETH, to: LAND_TOKEN, stable: false }],
+      route: [{ from: WETH, to: LAND_TOKEN, stable: false }], // For display
     };
   }
 
@@ -127,7 +131,7 @@ export function useBuyLand() {
  * Hook for selling LAND tokens for ETH
  */
 export function useSellLand() {
-  const { writeContract, data: hash, isPending } = useWriteContract();
+  const { writeContractAsync, data: hash, isPending } = useWriteContract();
   const { isLoading, isSuccess } = useWaitForTransactionReceipt({ hash });
 
   // Get pool reserves for quote calculation
@@ -170,21 +174,14 @@ export function useSellLand() {
     // Apply slippage tolerance
     const minAmountOut = (amountOut * BigInt(10000 - slippageBps)) / 10000n;
 
-    // Build route
-    const route = [
-      {
-        from: LAND_TOKEN,
-        to: WETH,
-        stable: false,
-      },
-    ];
+    // Build path (Uniswap V2 style: [LAND, WETH])
+    const path = [LAND_TOKEN, WETH];
 
     // Deadline: 20 minutes from now
     const deadline = Math.floor(Date.now() / 1000) + 1200;
 
     // First approve router to spend LAND tokens
-    const { writeContract: approve } = useWriteContract();
-    await approve({
+    await writeContractAsync({
       address: LAND_TOKEN,
       abi: LAND_TOKEN_ABI,
       functionName: 'approve',
@@ -192,12 +189,14 @@ export function useSellLand() {
     });
 
     // Then execute swap
-    await writeContract({
+    const txHash = await writeContractAsync({
       address: ROUTER,
       abi: AERODROME_ROUTER_ABI,
       functionName: 'swapExactTokensForETH',
-      args: [amountIn, minAmountOut, route, undefined as any, BigInt(deadline)],
+      args: [amountIn, minAmountOut, path, undefined as any, BigInt(deadline)],
     });
+
+    console.log('Sell transaction submitted:', txHash);
   }
 
   function getQuote(landAmount: string): SwapQuote | null {

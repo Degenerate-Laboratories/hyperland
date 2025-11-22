@@ -283,6 +283,10 @@ export const mockState = new MockHyperLandState();
 
 // Helper to check if we should use mock data
 export function useMockData(): boolean {
-  return process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true' ||
-         typeof window !== 'undefined' && !window.ethereum;
+  // Explicit disable - never use mock data if explicitly set to false
+  if (process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'false') {
+    return false;
+  }
+  // Only use mock if explicitly enabled
+  return process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true';
 }

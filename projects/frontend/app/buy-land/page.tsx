@@ -4,17 +4,20 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useHyperLand } from '@/lib/hyperland-context';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useBuyLand } from '@/lib/services/land-trading';
+import { useLandPrice } from '@/lib/services/price-oracle';
 
 export default function BuyLand() {
   const router = useRouter();
-  const { buyLAND, landBalance, ethBalance, isConnected, address, isMockMode } = useHyperLand();
+  const { landBalance, ethBalance, isConnected, address } = useHyperLand();
+  const { buyLand, getQuote, isPending } = useBuyLand();
+  const { landPriceUSD, landPriceETH, isLoading: priceLoading, error: priceError } = useLandPrice();
 
   const [ethAmount, setEthAmount] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Calculate LAND tokens to receive (80% of 1000 LAND per ETH)
-  const landToReceive = ethAmount ? (parseFloat(ethAmount) * 1000 * 0.8).toFixed(2) : '0';
-  const protocolFee = ethAmount ? (parseFloat(ethAmount) * 1000 * 0.2).toFixed(2) : '0';
+  // Get real quote from DEX
+  const quote = ethAmount && parseFloat(ethAmount) > 0 ? getQuote(ethAmount) : null;
 
   async function handleBuy() {
     if (!address) {
@@ -33,18 +36,46 @@ export default function BuyLand() {
       return;
     }
 
+    if (!quote) {
+      alert('Unable to get price quote. Please try again.');
+      return;
+    }
+
     setIsProcessing(true);
 
     try {
-      await buyLAND(ethAmount);
-      alert(`Successfully purchased ${landToReceive} LAND tokens!`);
+      // This will prompt wallet for signature and wait for user approval
+      const txHash = await buyLand(ethAmount, 500, address as `0x${string}`);
+
+      // Only reaches here if transaction was signed and submitted
+      const explorerUrl = `https://basescan.org/tx/${txHash}`;
+
+      alert(
+        `✅ Transaction Submitted to Base Mainnet!\n\n` +
+        `Transaction Hash:\n${txHash}\n\n` +
+        `Expected LAND: ${parseFloat(quote.amountOut).toFixed(2)} tokens\n\n` +
+        `Verify on BaseScan:\n${explorerUrl}\n\n` +
+        `Opening BaseScan in new tab...`
+      );
+
+      // Open BaseScan in new tab
+      window.open(explorerUrl, '_blank');
+
       setEthAmount('');
 
       // Redirect to marketplace after successful purchase
-      router.push('/marketplace');
+      setTimeout(() => router.push('/marketplace'), 3000);
     } catch (error) {
       console.error('Purchase failed:', error);
-      alert('Purchase failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
+
+      // Show detailed error message
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      if (errorMessage.includes('User rejected') || errorMessage.includes('User denied')) {
+        alert('Transaction cancelled - You rejected the transaction in your wallet');
+      } else {
+        alert('Purchase failed: ' + errorMessage);
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -58,11 +89,6 @@ export default function BuyLand() {
         <p className="text-xl text-gray-600 dark:text-gray-300">
           Purchase LAND tokens with ETH to buy land parcels
         </p>
-        {isMockMode && (
-          <p className="text-sm text-orange-600 mt-2">
-            🟠 Running in mock mode (simulated transactions)
-          </p>
-        )}
       </div>
 
       {/* Wallet Connection Required */}
@@ -118,22 +144,61 @@ export default function BuyLand() {
               </div>
             </div>
 
-            {/* Conversion Display */}
-            <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-6 mb-6 space-y-3">
+            {/* Live Market Price */}
+            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 mb-6">
               <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-400">Exchange Rate</span>
-                <span className="font-semibold">1 ETH = 1,000 LAND</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">💰 Live Market Price</span>
+                {priceLoading ? (
+                  <span className="text-sm">Loading...</span>
+                ) : priceError ? (
+                  <span className="text-sm text-red-600">{priceError}</span>
+                ) : (
+                  <span className="font-semibold">
+                    ${landPriceUSD.toFixed(6)} / LAND ({landPriceETH.toExponential(2)} ETH)
+                  </span>
+                )}
               </div>
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-600 dark:text-gray-400">You Receive (80%)</span>
-                  <span className="font-semibold text-green-600">{landToReceive} LAND</span>
+            </div>
+
+            {/* Swap Quote */}
+            <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-6 mb-6 space-y-3">
+              {quote ? (
+                <>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-400">You Receive</span>
+                    <span className="font-semibold text-green-600 text-lg">
+                      {parseFloat(quote.amountOut).toFixed(2)} LAND
+                    </span>
+                  </div>
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-3 space-y-2">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">Minimum Received (5% slippage)</span>
+                      <span className="font-medium">{parseFloat(quote.minimumReceived).toFixed(2)} LAND</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">Price Impact</span>
+                      <span className={`font-medium ${quote.priceImpact > 10 ? 'text-red-600' : quote.priceImpact > 5 ? 'text-orange-600' : 'text-green-600'}`}>
+                        {quote.priceImpact.toFixed(2)}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">Rate</span>
+                      <span className="font-medium">
+                        1 ETH = {(parseFloat(quote.amountOut) / parseFloat(ethAmount)).toFixed(2)} LAND
+                      </span>
+                    </div>
+                  </div>
+                  {quote.priceImpact > 10 && (
+                    <div className="mt-3 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-3 rounded">
+                      ⚠️ High price impact! Consider buying a smaller amount.
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-center text-gray-500 py-4">
+                  Enter an ETH amount to see quote
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-400">Protocol Fee (20%)</span>
-                  <span className="font-semibold text-gray-500">{protocolFee} LAND</span>
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Purchase Button */}
@@ -148,12 +213,17 @@ export default function BuyLand() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Processing...
+                  Waiting for wallet approval...
                 </span>
               ) : (
                 'Buy LAND Tokens'
               )}
             </button>
+
+            {/* Transaction Status Info */}
+            <div className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
+              Clicking "Buy" will prompt your wallet to approve the transaction
+            </div>
           </div>
 
           {/* Info Section */}
@@ -166,20 +236,24 @@ export default function BuyLand() {
             </h3>
             <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
               <li className="flex items-start">
-                <span className="mr-2">•</span>
-                <span>Exchange ETH for LAND tokens at a fixed rate of 1 ETH = 1,000 LAND</span>
+                <span className="mr-2">💱</span>
+                <span>Swap ETH for LAND tokens via BaseSwap DEX at live market prices</span>
               </li>
               <li className="flex items-start">
-                <span className="mr-2">•</span>
-                <span>You receive 80% of the LAND tokens (800 per ETH)</span>
+                <span className="mr-2">📊</span>
+                <span>Prices are determined by supply and demand in the liquidity pool</span>
               </li>
               <li className="flex items-start">
-                <span className="mr-2">•</span>
-                <span>20% goes to the protocol treasury for ecosystem sustainability</span>
+                <span className="mr-2">⚡</span>
+                <span>Instant swaps with 5% slippage protection for small pool liquidity</span>
               </li>
               <li className="flex items-start">
-                <span className="mr-2">•</span>
+                <span className="mr-2">🎯</span>
                 <span>Use LAND tokens to purchase land parcels and pay property taxes</span>
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2">⚠️</span>
+                <span>Note: Small liquidity pool means higher price impact on larger trades</span>
               </li>
             </ul>
           </div>

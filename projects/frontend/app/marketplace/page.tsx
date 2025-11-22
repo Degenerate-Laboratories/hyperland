@@ -13,7 +13,6 @@ export default function Marketplace() {
     buyParcel,
     placeBid,
     isLoading,
-    isMockMode,
     address,
     landBalance,
     getParcel,
@@ -108,11 +107,6 @@ export default function Marketplace() {
           <p className="text-gray-600 dark:text-gray-400">
             Browse and purchase land parcels
           </p>
-          {isMockMode && (
-            <p className="text-sm text-orange-600 mt-1">
-              🟠 Running in mock mode (offline data)
-            </p>
-          )}
         </div>
 
         {/* Filter */}
@@ -176,12 +170,45 @@ export default function Marketplace() {
       {/* Empty State */}
       {!isLoading && displayParcels.length === 0 && (
         <div className="text-center py-12 bg-gray-100 dark:bg-gray-800 rounded-lg">
-          <p className="text-xl text-gray-600 dark:text-gray-400">
-            No parcels available in the marketplace
+          <p className="text-xl text-gray-600 dark:text-gray-400 font-semibold">
+            No parcels currently listed for sale
           </p>
-          <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
-            Check back later or try a different filter
-          </p>
+          <div className="mt-4 text-sm text-gray-600 dark:text-gray-400 space-y-2">
+            <p>
+              Parcels will appear here once they are minted and listed by owners.
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-500">
+              The HyperLand marketplace is fetching listings from the Base blockchain.
+              <br />
+              Your LAND balance: <span className="font-bold">{landBalance} LAND</span>
+            </p>
+          </div>
+
+          {/* Show user's balance and next steps */}
+          {address && parseFloat(landBalance) > 0 && (
+            <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg max-w-md mx-auto">
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                ✅ You have {landBalance} LAND tokens ready to purchase parcels!
+              </p>
+              <p className="text-xs text-blue-600 dark:text-blue-300 mt-2">
+                Check back soon as parcels become available for sale.
+              </p>
+            </div>
+          )}
+
+          {address && parseFloat(landBalance) === 0 && (
+            <div className="mt-6">
+              <button
+                onClick={() => router.push('/buy-land')}
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+              >
+                Get LAND Tokens First
+              </button>
+              <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
+                You'll need LAND tokens to purchase parcels
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>

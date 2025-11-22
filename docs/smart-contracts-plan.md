@@ -179,8 +179,10 @@ address public treasury;         // Treasury address
 **buyLAND()**
 ```
 - Accepts ETH payment
-- Mints LAND (80% to buyer, 20% to treasury)
-- Transfers ETH to treasury
+- Market buy LAND
+- LP issues
+- LP burned
+Protocol sells the token! protocol owned Metaverse
 ```
 
 **listDeed(uint256 parcelId, uint256 price)**

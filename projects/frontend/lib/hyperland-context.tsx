@@ -3,20 +3,30 @@
  *
  * Provides unified access to HyperLand data, automatically switching between:
  * - Real blockchain data (when connected to wallet)
- * - Mock data (for offline development/testing)
+ * - Pre-defined parcels for initial sale (bonding curve)
  */
 
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useAccount } from 'wagmi';
-import { mockState, useMockData, type MockParcel } from './mock-data';
-import type { ParcelInfo, ParcelState } from './hyperland-sdk';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { useAccount, useBalance, useReadContract, useWriteContract } from 'wagmi';
 import { formatEther, parseEther } from 'ethers';
+import { LAND_TOKEN_ABI, HYPERLAND_CORE_ABI, PARCEL_SALE_ABI } from './abis';
+
+// Temporary data types until we have real blockchain indexing
+interface TempParcel {
+  tokenId: number;
+  x: number;
+  y: number;
+  owner: string;
+  taxDeadline: number;
+  isDelinquent: boolean;
+  listing?: { price: string; seller: string };
+  auction?: { startPrice: string; endTime: number; bids: Array<{ bidder: string; amount: string }> };
+}
 
 interface HyperLandContextType {
   // Mode
-  isMockMode: boolean;
   isConnected: boolean;
 
   // User data
@@ -25,10 +35,10 @@ interface HyperLandContextType {
   ethBalance: string;
 
   // Parcels
-  allParcels: MockParcel[];
-  userParcels: MockParcel[];
-  listedParcels: MockParcel[];
-  auctionParcels: MockParcel[];
+  allParcels: TempParcel[];
+  userParcels: TempParcel[];
+  listedParcels: TempParcel[];
+  auctionParcels: TempParcel[];
 
   // Stats
   stats: {
@@ -45,8 +55,8 @@ interface HyperLandContextType {
   buyParcel: (tokenId: number) => Promise<void>;
   payTaxes: (tokenId: number) => Promise<void>;
   placeBid: (tokenId: number, amount: string) => Promise<void>;
-  getParcel: (tokenId: number) => MockParcel | undefined;
-  getParcelByCoordinates: (x: number, y: number) => MockParcel | undefined;
+  getParcel: (tokenId: number) => TempParcel | undefined;
+  getParcelByCoordinates: (x: number, y: number) => TempParcel | undefined;
 
   // UI state
   isLoading: boolean;
@@ -55,170 +65,163 @@ interface HyperLandContextType {
 
 const HyperLandContext = createContext<HyperLandContextType | undefined>(undefined);
 
+const LAND_TOKEN = process.env.NEXT_PUBLIC_LAND_TOKEN_ADDRESS as `0x${string}`;
+const HYPERLAND_CORE = process.env.NEXT_PUBLIC_HYPERLAND_CORE_ADDRESS as `0x${string}`;
+const LAND_DEED = process.env.NEXT_PUBLIC_LAND_DEED_ADDRESS as `0x${string}`;
+const PARCEL_SALE = process.env.NEXT_PUBLIC_PARCEL_SALE_ADDRESS as `0x${string}` | undefined;
+
 export function HyperLandProvider({ children }: { children: ReactNode }) {
   const { address, isConnected } = useAccount();
-  const isMockMode = useMockData();
+
+  // Real blockchain balance hooks
+  const { data: ethBalanceData } = useBalance({
+    address: address as `0x${string}`,
+    query: { enabled: isConnected },
+  });
+
+  const { data: landBalanceData } = useReadContract({
+    address: LAND_TOKEN,
+    abi: LAND_TOKEN_ABI,
+    functionName: 'balanceOf',
+    args: [address as `0x${string}`],
+    query: { enabled: isConnected && !!address },
+  });
 
   const [landBalance, setLandBalance] = useState('0');
   const [ethBalance, setEthBalance] = useState('0');
-  const [allParcels, setAllParcels] = useState<MockParcel[]>([]);
+  const [allParcels, setAllParcels] = useState<TempParcel[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load data on mount and when address changes
+  // Contract interaction hooks
+  const { writeContractAsync } = useWriteContract();
+
+  // Update balances from blockchain data
   useEffect(() => {
-    loadData();
-  }, [address, isMockMode]);
-
-  async function loadData() {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      if (isMockMode) {
-        // Load mock data
-        const parcels = mockState.getAllParcels();
-        setAllParcels(parcels);
-
-        if (address) {
-          const user = mockState.getUser(address);
-          setLandBalance(user.landBalance);
-          setEthBalance(user.ethBalance);
-        }
-      } else {
-        // TODO: Load real blockchain data using SDK
-        // const client = createHyperLandClient({ network: 'base-sepolia' });
-        // const balance = await client.land.balanceOf(address);
-        // setLandBalance(formatEther(balance));
-        console.log('Blockchain mode not yet implemented');
-        setAllParcels(mockState.getAllParcels());
+    if (isConnected) {
+      if (ethBalanceData) {
+        setEthBalance(ethBalanceData.formatted);
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load data');
-      console.error('Error loading HyperLand data:', err);
-    } finally {
-      setIsLoading(false);
+      if (landBalanceData) {
+        setLandBalance(formatEther(landBalanceData.toString()));
+      }
     }
-  }
+  }, [ethBalanceData, landBalanceData, isConnected]);
+
+  // Load all 1,205 pre-defined parcels as available for initial purchase
+  useEffect(() => {
+    async function loadParcels() {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        console.log('Loading 1,205 pre-defined parcels...');
+
+        // Load the parcel data
+        const response = await fetch('/parcels.json');
+        const parcelData = await response.json();
+
+        const parcels: TempParcel[] = parcelData.map((parcel: any) => ({
+          tokenId: parcel.parcelNumber,
+          x: parcel.x,
+          y: parcel.y,
+          owner: '0x0000000000000000000000000000000000000000', // Available for purchase
+          taxDeadline: 0,
+          isDelinquent: false,
+          listing: {
+            price: parcel.assessedValue.toString(),
+            seller: `${parcel.ring} Ring - ${parcel.address}`,
+          },
+        }));
+
+        console.log(`✅ Loaded ${parcels.length} parcels available for initial purchase`);
+        setAllParcels(parcels);
+      } catch (err) {
+        console.error('Error loading parcels:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load parcels');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadParcels();
+  }, []);
 
   // Actions
   async function buyLAND(ethAmount: string) {
-    if (!address) throw new Error('Wallet not connected');
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      if (isMockMode) {
-        mockState.buyLAND(address, ethAmount);
-        await loadData();
-      } else {
-        // TODO: Real blockchain transaction
-        // await client.core.buyLAND(parseEther(ethAmount));
-        throw new Error('Blockchain transactions not yet implemented');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Transaction failed');
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
+    throw new Error('Use /buy-land page with DEX integration');
   }
 
   async function listParcel(tokenId: number, price: string) {
-    if (!address) throw new Error('Wallet not connected');
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      if (isMockMode) {
-        mockState.listParcel(tokenId, price, address);
-        await loadData();
-      } else {
-        // TODO: Real blockchain transaction
-        throw new Error('Blockchain transactions not yet implemented');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Transaction failed');
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
+    throw new Error('Listing functionality coming soon');
   }
 
   async function buyParcel(tokenId: number) {
-    if (!address) throw new Error('Wallet not connected');
+    if (!address) {
+      throw new Error('Please connect your wallet');
+    }
 
-    setIsLoading(true);
-    setError(null);
+    if (!PARCEL_SALE) {
+      throw new Error('ParcelSale contract not configured. Please set NEXT_PUBLIC_PARCEL_SALE_ADDRESS');
+    }
+
+    if (!LAND_TOKEN) {
+      throw new Error('LAND Token address not configured');
+    }
+
+    const parcel = getParcel(tokenId);
+    if (!parcel || !parcel.listing) {
+      throw new Error('Parcel not found or not available');
+    }
+
+    const priceInWei = parseEther(parcel.listing.price);
 
     try {
-      if (isMockMode) {
-        mockState.buyParcel(tokenId, address);
-        await loadData();
-      } else {
-        // TODO: Real blockchain transaction
-        throw new Error('Blockchain transactions not yet implemented');
-      }
+      // First approve the LAND token spend to ParcelSale contract
+      console.log(`Approving ${parcel.listing.price} LAND for ParcelSale contract...`);
+      const approveTx = await writeContractAsync({
+        address: LAND_TOKEN,
+        abi: LAND_TOKEN_ABI,
+        functionName: 'approve',
+        args: [PARCEL_SALE, priceInWei],
+      });
+
+      console.log('Approval transaction:', approveTx);
+
+      // Wait for approval to be mined
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      // Purchase the parcel via ParcelSale contract
+      console.log(`Purchasing parcel #${tokenId}...`);
+      const purchaseTx = await writeContractAsync({
+        address: PARCEL_SALE,
+        abi: PARCEL_SALE_ABI,
+        functionName: 'purchaseParcel',
+        args: [BigInt(tokenId)],
+      });
+
+      console.log('Purchase transaction:', purchaseTx);
+      return purchaseTx;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Transaction failed');
+      console.error('Purchase error:', err);
       throw err;
-    } finally {
-      setIsLoading(false);
     }
   }
 
   async function payTaxes(tokenId: number) {
-    if (!address) throw new Error('Wallet not connected');
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      if (isMockMode) {
-        mockState.payTaxes(tokenId, address);
-        await loadData();
-      } else {
-        // TODO: Real blockchain transaction
-        throw new Error('Blockchain transactions not yet implemented');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Transaction failed');
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
+    throw new Error('Tax payment functionality coming soon');
   }
 
   async function placeBid(tokenId: number, amount: string) {
-    if (!address) throw new Error('Wallet not connected');
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      if (isMockMode) {
-        mockState.placeBid(tokenId, address, amount);
-        await loadData();
-      } else {
-        // TODO: Real blockchain transaction
-        throw new Error('Blockchain transactions not yet implemented');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Transaction failed');
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
+    throw new Error('Auction bidding coming soon');
   }
 
-  function getParcel(tokenId: number): MockParcel | undefined {
-    return isMockMode ? mockState.getParcel(tokenId) : undefined;
+  function getParcel(tokenId: number): TempParcel | undefined {
+    return allParcels.find(p => p.tokenId === tokenId);
   }
 
-  function getParcelByCoordinates(x: number, y: number): MockParcel | undefined {
-    return isMockMode ? mockState.getParcelByCoordinates(x, y) : undefined;
+  function getParcelByCoordinates(x: number, y: number): TempParcel | undefined {
+    return allParcels.find(p => p.x === x && p.y === y);
   }
 
   // Computed values
@@ -227,18 +230,17 @@ export function HyperLandProvider({ children }: { children: ReactNode }) {
     : [];
 
   const listedParcels = allParcels.filter(p => p.listing);
-  const auctionParcels = allParcels.filter(p => p.inAuction);
+  const auctionParcels = allParcels.filter(p => p.auction);
 
-  const stats = isMockMode ? mockState.getStats() : {
-    totalParcels: allParcels.length,
-    ownedParcels: allParcels.filter(p => p.owner !== '0x0000000000000000000000000000000000000000').length,
+  const stats = {
+    totalParcels: 1205,
+    ownedParcels: userParcels.length,
     listedParcels: listedParcels.length,
     auctionParcels: auctionParcels.length,
     activeOwners: 0,
   };
 
   const value: HyperLandContextType = {
-    isMockMode,
     isConnected,
     address,
     landBalance,

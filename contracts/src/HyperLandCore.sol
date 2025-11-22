@@ -29,6 +29,9 @@ contract HyperLandCore is Ownable, ReentrancyGuard, Pausable {
     uint256 public immutable startTimestamp;
     address public treasury;
 
+    // Authorized minters (ParcelSale contracts, etc.)
+    mapping(address => bool) public authorizedMinters;
+
     // Assessor registry
     struct Assessor {
         bool isActive;
@@ -153,13 +156,32 @@ contract HyperLandCore is Ownable, ReentrancyGuard, Pausable {
      * @param assessedValue Assessed value in LAND tokens
      * @return tokenId The ID of the newly minted parcel
      */
+    /**
+     * @dev Authorize an address to mint parcels (e.g., ParcelSale contract)
+     */
+    function authorizeMinter(address minter, bool authorized) external onlyOwner {
+        require(minter != address(0), "Invalid minter address");
+        authorizedMinters[minter] = authorized;
+    }
+
+    /**
+     * @dev Modifier to check if caller is owner or authorized minter
+     */
+    modifier onlyOwnerOrMinter() {
+        require(
+            msg.sender == owner() || authorizedMinters[msg.sender],
+            "Not authorized to mint"
+        );
+        _;
+    }
+
     function mintParcel(
         address to,
         uint256 x,
         uint256 y,
         uint256 size,
         uint256 assessedValue
-    ) external onlyOwner returns (uint256) {
+    ) external onlyOwnerOrMinter returns (uint256) {
         require(to != address(0), "Cannot mint to zero address");
         require(assessedValue > 0, "Assessed value must be > 0");
         require(assessedValue <= landToken.TOTAL_SUPPLY(), "Assessed value exceeds total supply");

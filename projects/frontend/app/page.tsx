@@ -6,8 +6,6 @@ import { useHyperLand } from '@/lib/hyperland-context';
 import { WalletAuth } from '@/components/WalletAuth';
 
 export default function Home() {
-  const { isMockMode } = useHyperLand();
-
   return (
     <div className="space-y-8 pb-8">
       {/* Hero Section with Banner Image */}
@@ -25,12 +23,13 @@ export default function Home() {
             <p className="text-xl mb-8 text-white">
               Own, trade, and manage virtual land parcels on the blockchain
             </p>
-            {isMockMode && (
-              <p className="text-sm text-orange-200 mb-4">
-                🟠 Running in mock mode - Connect wallet for blockchain features
-              </p>
-            )}
             <div className="space-x-4">
+              <Link
+                href="/buy-land"
+                className="bg-gradient-to-br from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white px-8 py-4 rounded-lg font-bold text-lg transition-all duration-200 inline-block shadow-lg hover:shadow-xl"
+              >
+                🪙 Buy LAND Tokens
+              </Link>
               <Link
                 href="/marketplace"
                 className="bg-gradient-to-br from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-200 inline-block"

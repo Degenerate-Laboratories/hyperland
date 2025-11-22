@@ -1,22 +1,14 @@
 /**
- * Aerodrome Router ABI
+ * BaseSwap / Uniswap V2 Router ABI
  * For swapping and liquidity operations on Base
  */
 
 export const AERODROME_ROUTER_ABI = [
-  // Swap functions
+  // Swap functions (Uniswap V2 compatible)
   {
     inputs: [
       { name: 'amountOutMin', type: 'uint256' },
-      {
-        components: [
-          { name: 'from', type: 'address' },
-          { name: 'to', type: 'address' },
-          { name: 'stable', type: 'bool' },
-        ],
-        name: 'routes',
-        type: 'tuple[]',
-      },
+      { name: 'path', type: 'address[]' },
       { name: 'to', type: 'address' },
       { name: 'deadline', type: 'uint256' },
     ],
@@ -29,21 +21,24 @@ export const AERODROME_ROUTER_ABI = [
     inputs: [
       { name: 'amountIn', type: 'uint256' },
       { name: 'amountOutMin', type: 'uint256' },
-      {
-        components: [
-          { name: 'from', type: 'address' },
-          { name: 'to', type: 'address' },
-          { name: 'stable', type: 'bool' },
-        ],
-        name: 'routes',
-        type: 'tuple[]',
-      },
+      { name: 'path', type: 'address[]' },
       { name: 'to', type: 'address' },
       { name: 'deadline', type: 'uint256' },
     ],
     name: 'swapExactTokensForETH',
     outputs: [{ name: 'amounts', type: 'uint256[]' }],
     stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  // Quote functions
+  {
+    inputs: [
+      { name: 'amountIn', type: 'uint256' },
+      { name: 'path', type: 'address[]' },
+    ],
+    name: 'getAmountsOut',
+    outputs: [{ name: 'amounts', type: 'uint256[]' }],
+    stateMutability: 'view',
     type: 'function',
   },
   // Quote functions
