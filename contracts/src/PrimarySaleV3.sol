@@ -239,10 +239,11 @@ contract PrimarySaleV3 is Ownable, ReentrancyGuard {
         totalETHCollected += msg.value;
 
         // Mint parcel via HyperLandCore (primary sale)
+        // Cast int256 coordinates to uint256 for mintParcel
         hyperLandCore.mintParcel(
             msg.sender,
-            config.x,
-            config.y,
+            uint256(config.x),
+            uint256(config.y),
             config.size,
             config.assessedValue
         );
