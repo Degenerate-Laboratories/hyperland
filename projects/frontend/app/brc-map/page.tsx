@@ -20,6 +20,7 @@ interface MapData {
 export default function BRCMapPage() {
   const [mapData, setMapData] = useState<MapData | null>(null);
   const [selectedParcel, setSelectedParcel] = useState<BRCParcel | null>(null);
+  const [hoveredBand, setHoveredBand] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     band: '',
     status: '',
@@ -110,6 +111,7 @@ export default function BRCMapPage() {
           parcels={mapData?.parcels || []}
           onParcelClick={handleParcelClick}
           selectedParcel={selectedParcel}
+          hoveredBand={hoveredBand}
         />
       </div>
 
@@ -155,32 +157,52 @@ export default function BRCMapPage() {
               </div>
             </div>
 
-            {/* Territory Rings - Show in scroll on mobile */}
+            {/* Territory Rings - Show in scroll on mobile (EYEBALL THEME) */}
             <div className="glass px-2 md:px-4 py-1.5 md:py-2 rounded-md md:rounded-lg border border-white/20 flex-shrink-0">
               <div className="text-[9px] md:text-xs text-white/60 mb-1 md:mb-2 font-semibold">TERRITORY</div>
               <div className="flex items-center gap-2 md:gap-4">
-                <div className="flex items-center gap-1 md:gap-2">
-                  <div className="w-3 h-3 md:w-4 md:h-4 rounded border border-cyan-400/50" style={{ background: 'rgba(6, 182, 212, 0.75)', boxShadow: '0 0 8px rgba(6, 182, 212, 0.3)' }}></div>
+                <div
+                  className="flex items-center gap-1 md:gap-2 cursor-pointer transition-all hover:scale-110"
+                  onMouseEnter={() => setHoveredBand('Esplanade')}
+                  onMouseLeave={() => setHoveredBand(null)}
+                >
+                  <div className="w-3 h-3 md:w-4 md:h-4 rounded border border-amber-700/50" style={{ background: 'rgba(150, 100, 60, 0.75)', boxShadow: hoveredBand === 'Esplanade' ? '0 0 15px rgba(150, 100, 60, 0.8)' : '0 0 8px rgba(150, 100, 60, 0.3)' }}></div>
                   <span className="text-[9px] md:text-xs text-white/80 font-medium hidden md:inline">Esplanade</span>
                   <span className="text-[9px] text-white/80 font-medium md:hidden">Esp</span>
                 </div>
-                <div className="flex items-center gap-1 md:gap-2">
-                  <div className="w-3 h-3 md:w-4 md:h-4 rounded border border-blue-400/50" style={{ background: 'rgba(59, 130, 246, 0.75)', boxShadow: '0 0 8px rgba(59, 130, 246, 0.3)' }}></div>
+                <div
+                  className="flex items-center gap-1 md:gap-2 cursor-pointer transition-all hover:scale-110"
+                  onMouseEnter={() => setHoveredBand('Afanc')}
+                  onMouseLeave={() => setHoveredBand(null)}
+                >
+                  <div className="w-3 h-3 md:w-4 md:h-4 rounded border border-blue-400/50" style={{ background: 'rgba(59, 130, 246, 0.75)', boxShadow: hoveredBand === 'Afanc' ? '0 0 15px rgba(59, 130, 246, 0.8)' : '0 0 8px rgba(59, 130, 246, 0.3)' }}></div>
                   <span className="text-[9px] md:text-xs text-white/80 font-medium hidden md:inline">Afanc</span>
                   <span className="text-[9px] text-white/80 font-medium md:hidden">Afa</span>
                 </div>
-                <div className="flex items-center gap-1 md:gap-2">
-                  <div className="w-3 h-3 md:w-4 md:h-4 rounded border border-purple-400/50" style={{ background: 'rgba(168, 85, 247, 0.75)', boxShadow: '0 0 8px rgba(168, 85, 247, 0.3)' }}></div>
+                <div
+                  className="flex items-center gap-1 md:gap-2 cursor-pointer transition-all hover:scale-110"
+                  onMouseEnter={() => setHoveredBand('MidCity')}
+                  onMouseLeave={() => setHoveredBand(null)}
+                >
+                  <div className="w-3 h-3 md:w-4 md:h-4 rounded border border-gray-300/50" style={{ background: 'rgba(220, 220, 225, 0.75)', boxShadow: hoveredBand === 'MidCity' ? '0 0 15px rgba(220, 220, 225, 0.8)' : '0 0 8px rgba(220, 220, 225, 0.3)' }}></div>
                   <span className="text-[9px] md:text-xs text-white/80 font-medium hidden md:inline">MidCity</span>
                   <span className="text-[9px] text-white/80 font-medium md:hidden">Mid</span>
                 </div>
-                <div className="flex items-center gap-1 md:gap-2">
-                  <div className="w-3 h-3 md:w-4 md:h-4 rounded border border-orange-400/50" style={{ background: 'rgba(249, 115, 22, 0.75)', boxShadow: '0 0 8px rgba(249, 115, 22, 0.3)' }}></div>
+                <div
+                  className="flex items-center gap-1 md:gap-2 cursor-pointer transition-all hover:scale-110"
+                  onMouseEnter={() => setHoveredBand('Igopogo')}
+                  onMouseLeave={() => setHoveredBand(null)}
+                >
+                  <div className="w-3 h-3 md:w-4 md:h-4 rounded border border-gray-200/50" style={{ background: 'rgba(240, 240, 235, 0.75)', boxShadow: hoveredBand === 'Igopogo' ? '0 0 15px rgba(240, 240, 235, 0.8)' : '0 0 8px rgba(240, 240, 235, 0.3)' }}></div>
                   <span className="text-[9px] md:text-xs text-white/80 font-medium hidden md:inline">Igopogo</span>
                   <span className="text-[9px] text-white/80 font-medium md:hidden">Igo</span>
                 </div>
-                <div className="flex items-center gap-1 md:gap-2">
-                  <div className="w-3 h-3 md:w-4 md:h-4 rounded border border-pink-400/50" style={{ background: 'rgba(236, 72, 153, 0.75)', boxShadow: '0 0 8px rgba(236, 72, 153, 0.3)' }}></div>
+                <div
+                  className="flex items-center gap-1 md:gap-2 cursor-pointer transition-all hover:scale-110"
+                  onMouseEnter={() => setHoveredBand('Kraken')}
+                  onMouseLeave={() => setHoveredBand(null)}
+                >
+                  <div className="w-3 h-3 md:w-4 md:h-4 rounded border border-gray-100/50" style={{ background: 'rgba(250, 250, 250, 0.75)', boxShadow: hoveredBand === 'Kraken' ? '0 0 15px rgba(250, 250, 250, 0.8)' : '0 0 8px rgba(250, 250, 250, 0.3)' }}></div>
                   <span className="text-[9px] md:text-xs text-white/80 font-medium hidden md:inline">Kraken</span>
                   <span className="text-[9px] text-white/80 font-medium md:hidden">Kra</span>
                 </div>

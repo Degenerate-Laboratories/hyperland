@@ -7,9 +7,10 @@ interface BRCMap2DProps {
   parcels: BRCParcel[];
   onParcelClick: (parcel: BRCParcel) => void;
   selectedParcel: BRCParcel | null;
+  hoveredBand?: string | null;
 }
 
-export default function BRCMap2D({ parcels, onParcelClick, selectedParcel }: BRCMap2DProps) {
+export default function BRCMap2D({ parcels, onParcelClick, selectedParcel, hoveredBand }: BRCMap2DProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const logoImageRef = useRef<HTMLImageElement | null>(null);
   const [hoveredParcel, setHoveredParcel] = useState<BRCParcel | null>(null);
@@ -39,6 +40,9 @@ export default function BRCMap2D({ parcels, onParcelClick, selectedParcel }: BRC
     ctx.translate(canvas.width / 2 + offsetX, canvas.height / 2 + offsetY);
     ctx.scale(scale, scale);
 
+    // LAYER 1: Draw radial line glow FIRST (under everything)
+    drawRadialGlow(ctx);
+
     // Draw grid pattern
     drawGrid(ctx);
 
@@ -50,7 +54,8 @@ export default function BRCMap2D({ parcels, onParcelClick, selectedParcel }: BRC
 
     // Draw all parcels
     parcels.forEach(parcel => {
-      drawParcel(ctx, parcel, parcel === selectedParcel, parcel === hoveredParcel);
+      const isBandHovered = hoveredBand ? parcel.band === hoveredBand : false;
+      drawParcel(ctx, parcel, parcel === selectedParcel, parcel === hoveredParcel, isBandHovered);
     });
 
     // Draw ring labels
@@ -59,14 +64,17 @@ export default function BRCMap2D({ parcels, onParcelClick, selectedParcel }: BRC
     // Draw The Man (center point)
     drawMan(ctx);
 
-    // Draw logo at center
+    // LAYER 2: Draw radial line (before logo so it goes behind)
+    drawRadialLine(ctx);
+
+    // Draw logo at center (on top of radial line)
     if (logoLoaded && logoImageRef.current) {
       drawLogo(ctx);
     }
 
     // Restore context
     ctx.restore();
-  }, [parcels, selectedParcel, hoveredParcel, transform, logoLoaded]);
+  }, [parcels, selectedParcel, hoveredParcel, hoveredBand, transform, logoLoaded]);
 
   // Draw background grid (minimal Otherside.xyz style)
   const drawGrid = (ctx: CanvasRenderingContext2D) => {
@@ -91,7 +99,48 @@ export default function BRCMap2D({ parcels, onParcelClick, selectedParcel }: BRC
     }
   };
 
-  // Draw The Man marker with pulsating radiation animation
+  // Draw radial line GLOW (under map and logo)
+  const drawRadialGlow = (ctx: CanvasRenderingContext2D) => {
+    const time = Date.now() / 1000;
+    const rotationSpeed = (Math.PI * 2) / 18; // 18 second rotation
+    const angle = (time * rotationSpeed) % (Math.PI * 2);
+    const lineLength = 11690; // Full radius to outer edge (Kraken ring)
+
+    // Draw multiple layered glow effects for better visibility
+    ctx.save();
+
+    // Outer glow layer (widest, most subtle)
+    ctx.shadowColor = '#22d3ee';
+    ctx.shadowBlur = 600;
+    ctx.strokeStyle = 'rgba(34, 211, 238, 0.08)';
+    ctx.lineWidth = 400;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(lineLength * Math.cos(angle), lineLength * Math.sin(angle));
+    ctx.stroke();
+
+    // Middle glow layer
+    ctx.shadowBlur = 300;
+    ctx.strokeStyle = 'rgba(34, 211, 238, 0.15)';
+    ctx.lineWidth = 200;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(lineLength * Math.cos(angle), lineLength * Math.sin(angle));
+    ctx.stroke();
+
+    // Inner glow layer (brightest)
+    ctx.shadowBlur = 150;
+    ctx.strokeStyle = 'rgba(34, 211, 238, 0.25)';
+    ctx.lineWidth = 100;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(lineLength * Math.cos(angle), lineLength * Math.sin(angle));
+    ctx.stroke();
+
+    ctx.restore();
+  };
+
+  // Draw The Man marker with pulsating radiation animation (center pupil)
   const drawMan = (ctx: CanvasRenderingContext2D) => {
     const time = Date.now() / 1000;
 
@@ -116,7 +165,7 @@ export default function BRCMap2D({ parcels, onParcelClick, selectedParcel }: BRC
       }
     }
 
-    // Center dot with subtle pulse (bigger)
+    // Center dot with subtle pulse (bigger) - this is the "pupil"
     const pulseScale = 1 + Math.sin(time * 1.5) * 0.15; // Slower, bigger pulse
     const pulseRadius = 200 * pulseScale;
 
@@ -135,6 +184,63 @@ export default function BRCMap2D({ parcels, onParcelClick, selectedParcel }: BRC
     ctx.beginPath();
     ctx.arc(0, 0, pulseRadius * 0.5, 0, Math.PI * 2);
     ctx.fill();
+  };
+
+  // Draw ROTATING RADIAL LINE on top of everything (eye iris effect with sonar trail)
+  const drawRadialLine = (ctx: CanvasRenderingContext2D) => {
+    const time = Date.now() / 1000;
+    const rotationSpeed = (Math.PI * 2) / 18; // Complete rotation every 18 seconds
+    const angle = (time * rotationSpeed) % (Math.PI * 2);
+    const lineLength = 11690; // Full radius to outer edge (Kraken ring)
+
+    // Draw trailing glow effect (like sonar phosphor persistence)
+    const trailCount = 20; // Number of trail segments
+    for (let i = 1; i <= trailCount; i++) {
+      const trailAngle = angle - (i * 0.05); // Trail behind the main line
+      const trailOpacity = (1 - (i / trailCount)) * 0.4; // Fade from 0.4 to 0
+
+      const trailGradient = ctx.createLinearGradient(
+        0, 0,
+        lineLength * Math.cos(trailAngle),
+        lineLength * Math.sin(trailAngle)
+      );
+      trailGradient.addColorStop(0, `rgba(255, 255, 255, ${trailOpacity})`); // White at center
+      trailGradient.addColorStop(0.5, `rgba(144, 233, 244, ${trailOpacity * 0.9})`); // Light cyan mid
+      trailGradient.addColorStop(0.7, `rgba(34, 211, 238, ${trailOpacity * 0.8})`); // Cyan
+      trailGradient.addColorStop(1, 'rgba(34, 211, 238, 0)'); // Fade out
+
+      ctx.save();
+      ctx.strokeStyle = trailGradient;
+      ctx.lineWidth = 10;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(lineLength * Math.cos(trailAngle), lineLength * Math.sin(trailAngle));
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Draw the main rotating line with WHITE to CYAN gradient
+    const gradient = ctx.createLinearGradient(
+      0, 0,
+      lineLength * Math.cos(angle),
+      lineLength * Math.sin(angle)
+    );
+    gradient.addColorStop(0, 'rgba(255, 255, 255, 1)'); // Bright WHITE at center
+    gradient.addColorStop(0.3, 'rgba(200, 240, 248, 1)'); // Very light cyan
+    gradient.addColorStop(0.6, 'rgba(34, 211, 238, 1)'); // Bright cyan
+    gradient.addColorStop(0.9, 'rgba(34, 211, 238, 0.8)'); // Dimmer cyan
+    gradient.addColorStop(1, 'rgba(34, 211, 238, 0)'); // Fade at edge
+
+    ctx.save();
+    ctx.strokeStyle = gradient;
+    ctx.lineWidth = 12;
+    ctx.shadowColor = '#22d3ee';
+    ctx.shadowBlur = 40;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(lineLength * Math.cos(angle), lineLength * Math.sin(angle));
+    ctx.stroke();
+    ctx.restore();
   };
 
   // Draw logo above the map with smooth animation
@@ -281,7 +387,7 @@ export default function BRCMap2D({ parcels, onParcelClick, selectedParcel }: BRC
     });
   };
 
-  // Get gradient color for parcel based on band and sector
+  // Get gradient color for parcel based on band and sector (EYEBALL THEME)
   const getBandColor = (band: string, parcelId: string): { fill: string; stroke: string } => {
     // Use parcel ID to create consistent color variation (hash-based)
     const hash = parcelId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -289,43 +395,42 @@ export default function BRCMap2D({ parcels, onParcelClick, selectedParcel }: BRC
 
     switch (band) {
       case 'Esplanade':
-        // Cyan gradient: light to dark
-        const cyanShade = Math.floor(120 + variation * 140); // 120-260 range
+        // BROWN tones (outer iris ring)
+        const brownR = Math.floor(120 + variation * 80); // 120-200
+        const brownG = Math.floor(80 + variation * 50); // 80-130
+        const brownB = Math.floor(40 + variation * 40); // 40-80
         return {
-          fill: `rgba(${Math.floor(cyanShade * 0.03)}, ${cyanShade}, ${Math.floor(cyanShade * 0.95)}, 0.75)`,
-          stroke: `rgba(${Math.floor(cyanShade * 0.03)}, ${cyanShade}, ${Math.floor(cyanShade * 0.95)}, 1)`
+          fill: `rgba(${brownR}, ${brownG}, ${brownB}, 0.75)`,
+          stroke: `rgba(${brownR}, ${brownG}, ${brownB}, 1)`
         };
       case 'Afanc':
-        // Blue gradient: light to dark
+        // BLUE tones (main iris color)
         const blueShade = Math.floor(100 + variation * 170); // 100-270 range
         return {
           fill: `rgba(${Math.floor(blueShade * 0.3)}, ${Math.floor(blueShade * 0.6)}, ${blueShade}, 0.75)`,
           stroke: `rgba(${Math.floor(blueShade * 0.3)}, ${Math.floor(blueShade * 0.6)}, ${blueShade}, 1)`
         };
       case 'MidCity':
-        // Purple gradient: light to dark
-        const purpleR = Math.floor(130 + variation * 90); // 130-220
-        const purpleB = Math.floor(200 + variation * 55); // 200-255
+        // LIGHT GRAY/WHITE tones (transition to sclera)
+        const lightShade = Math.floor(200 + variation * 40); // 200-240
         return {
-          fill: `rgba(${purpleR}, ${Math.floor(purpleR * 0.4)}, ${purpleB}, 0.75)`,
-          stroke: `rgba(${purpleR}, ${Math.floor(purpleR * 0.4)}, ${purpleB}, 1)`
+          fill: `rgba(${lightShade}, ${lightShade}, ${Math.floor(lightShade * 1.05)}, 0.75)`,
+          stroke: `rgba(${lightShade}, ${lightShade}, ${Math.floor(lightShade * 1.05)}, 1)`
         };
       case 'Igopogo':
-        // Orange gradient: light to dark
-        const orangeR = Math.floor(220 + variation * 35); // 220-255
-        const orangeG = Math.floor(80 + variation * 70); // 80-150
+        // WHITE/CREAM tones (sclera)
+        const whiteShade = Math.floor(230 + variation * 25); // 230-255
+        const creamTint = Math.floor(whiteShade * 0.98);
         return {
-          fill: `rgba(${orangeR}, ${orangeG}, ${Math.floor(orangeG * 0.2)}, 0.75)`,
-          stroke: `rgba(${orangeR}, ${orangeG}, ${Math.floor(orangeG * 0.2)}, 1)`
+          fill: `rgba(${whiteShade}, ${whiteShade}, ${creamTint}, 0.75)`,
+          stroke: `rgba(${whiteShade}, ${whiteShade}, ${creamTint}, 1)`
         };
       case 'Kraken':
-        // Pink/Magenta gradient: light to dark
-        const pinkR = Math.floor(200 + variation * 55); // 200-255
-        const pinkG = Math.floor(50 + variation * 80); // 50-130
-        const pinkB = Math.floor(130 + variation * 80); // 130-210
+        // PURE WHITE (outer sclera)
+        const pureWhite = Math.floor(245 + variation * 10); // 245-255
         return {
-          fill: `rgba(${pinkR}, ${pinkG}, ${pinkB}, 0.75)`,
-          stroke: `rgba(${pinkR}, ${pinkG}, ${pinkB}, 1)`
+          fill: `rgba(${pureWhite}, ${pureWhite}, ${pureWhite}, 0.75)`,
+          stroke: `rgba(${pureWhite}, ${pureWhite}, ${pureWhite}, 1)`
         };
       default:
         return {
@@ -340,7 +445,8 @@ export default function BRCMap2D({ parcels, onParcelClick, selectedParcel }: BRC
     ctx: CanvasRenderingContext2D,
     parcel: BRCParcel,
     isSelected: boolean,
-    isHovered: boolean
+    isHovered: boolean,
+    isBandHovered: boolean
   ) => {
     // Get gradient color for this band and parcel
     const bandColors = getBandColor(parcel.band, parcel.id);
@@ -366,23 +472,35 @@ export default function BRCMap2D({ parcels, onParcelClick, selectedParcel }: BRC
       }
       ctx.closePath();
 
-      // Draw glow for selected/hovered
-      if (isSelected || isHovered) {
+      // Draw glow for selected/hovered/band-hovered
+      if (isSelected || isHovered || isBandHovered) {
         ctx.save();
-        ctx.shadowColor = isSelected ? '#22d3ee' : '#a78bfa';
-        ctx.shadowBlur = isSelected ? 100 : 60;
-        ctx.fillStyle = isSelected ? 'rgba(34, 211, 238, 0.3)' : 'rgba(167, 139, 250, 0.3)';
+        ctx.shadowColor = isSelected ? '#22d3ee' : isBandHovered ? '#fbbf24' : '#a78bfa';
+        ctx.shadowBlur = isSelected ? 100 : isBandHovered ? 80 : 60;
+        ctx.fillStyle = isSelected ? 'rgba(34, 211, 238, 0.3)' : isBandHovered ? 'rgba(251, 191, 36, 0.2)' : 'rgba(167, 139, 250, 0.3)';
         ctx.fill();
         ctx.restore();
       }
 
+      // Dim non-hovered bands when a band is being hovered
+      let adjustedFillColor = fillColor;
+      let adjustedStrokeColor = strokeColor;
+      if (hoveredBand && !isBandHovered) {
+        // Dim parcels not in the hovered band
+        adjustedFillColor = fillColor.replace(/0\.\d+\)/, '0.3)');
+        adjustedStrokeColor = strokeColor.replace(/1\)/, '0.4)');
+      } else if (isBandHovered) {
+        // Brighten parcels in the hovered band
+        adjustedFillColor = fillColor.replace(/0\.75\)/, '0.95)');
+      }
+
       // Fill the parcel
-      ctx.fillStyle = isSelected ? 'rgba(34, 211, 238, 0.9)' : isHovered ? 'rgba(167, 139, 250, 0.9)' : fillColor;
+      ctx.fillStyle = isSelected ? 'rgba(34, 211, 238, 0.9)' : isHovered ? 'rgba(167, 139, 250, 0.9)' : adjustedFillColor;
       ctx.fill();
 
       // Draw border
-      ctx.strokeStyle = isSelected ? '#22d3ee' : isHovered ? '#a78bfa' : strokeColor;
-      ctx.lineWidth = isSelected ? 3 : isHovered ? 2 : 1;
+      ctx.strokeStyle = isSelected ? '#22d3ee' : isHovered ? '#a78bfa' : isBandHovered ? '#fbbf24' : adjustedStrokeColor;
+      ctx.lineWidth = isSelected ? 3 : isHovered ? 2 : isBandHovered ? 2 : 1;
       ctx.stroke();
     }
   };
