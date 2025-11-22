@@ -78,51 +78,51 @@ export default function MyLands() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">My Lands</h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <h1 className="text-3xl font-bold text-white">My Lands</h1>
+          <p className="text-white/80">
             Manage your land parcels and LAND tokens
           </p>
           {isMockMode && (
-            <p className="text-sm text-orange-600 mt-1">
+            <p className="text-sm text-orange-400 mt-1">
               🟠 Running in mock mode (offline data)
             </p>
           )}
         </div>
-        <div className="bg-blue-100 dark:bg-blue-900 px-6 py-3 rounded-lg">
-          <p className="text-sm text-gray-600 dark:text-gray-300">
+        <div className="glass px-6 py-3 rounded-lg border border-white/20">
+          <p className="text-sm text-white/80">
             LAND Balance
           </p>
-          <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+          <p className="text-2xl font-bold text-cyan-400">
             {landBalance} LAND
           </p>
         </div>
       </div>
 
       {/* Buy LAND Section */}
-      <div className="border rounded-lg p-6 bg-gradient-to-r from-green-50 to-blue-50 dark:from-gray-800 dark:to-gray-700">
-        <h2 className="text-2xl font-bold mb-4">Buy LAND Tokens</h2>
+      <div className="glass rounded-lg p-6 border border-white/20">
+        <h2 className="text-2xl font-bold mb-4 text-white">Buy LAND Tokens</h2>
         <div className="flex gap-4">
           <input
             type="number"
             value={ethAmount}
             onChange={(e) => setEthAmount(e.target.value)}
             placeholder="Amount in ETH"
-            className="border rounded px-4 py-2 flex-1 dark:bg-gray-800"
+            className="border border-white/20 bg-white/10 rounded px-4 py-2 flex-1 text-white placeholder-white/50"
             disabled={buyingLand || !address}
           />
           <button
             onClick={handleBuyLAND}
             disabled={buyingLand || !address || !ethAmount}
-            className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-6 py-2 rounded font-medium"
+            className="bg-gradient-to-br from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-2 rounded font-medium transition-all duration-200"
           >
             {buyingLand ? 'Buying...' : 'Buy LAND'}
           </button>
         </div>
-        <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
+        <p className="text-sm text-white/80 mt-2">
           You receive 80% in LAND tokens, 20% goes to treasury (Rate: 1 ETH = 800 LAND)
         </p>
         {!address && (
-          <p className="text-sm text-red-600 mt-2">
+          <p className="text-sm text-red-400 mt-2">
             Please connect your wallet to buy LAND
           </p>
         )}
@@ -131,25 +131,25 @@ export default function MyLands() {
       {/* Loading */}
       {isLoading && (
         <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading your parcels...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto"></div>
+          <p className="mt-4 text-white/80">Loading your parcels...</p>
         </div>
       )}
 
       {/* My Parcels */}
       {!isLoading && (
         <div>
-          <h2 className="text-2xl font-bold mb-4">
+          <h2 className="text-2xl font-bold mb-4 text-white">
             My Parcels ({userParcels.length})
           </h2>
           {userParcels.length === 0 ? (
-            <div className="text-center py-12 border rounded-lg bg-gray-50 dark:bg-gray-800">
-              <p className="text-xl text-gray-600 dark:text-gray-300 mb-4">
+            <div className="text-center py-12 glass rounded-lg border border-white/20">
+              <p className="text-xl text-white/80 mb-4">
                 You don't own any land parcels yet
               </p>
               <a
                 href="/marketplace"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded inline-block font-medium"
+                className="bg-gradient-to-br from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white px-6 py-3 rounded inline-block font-medium transition-all duration-200"
               >
                 Browse Marketplace
               </a>

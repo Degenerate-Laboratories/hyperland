@@ -53,14 +53,14 @@ install: init ## Install all dependencies (landing page + hyperfy)
 	cd projects/frontend && npm install
 	@echo "${GREEN}✓ Landing page dependencies installed${NC}"
 	@echo "${BLUE}Installing hyperfy dependencies...${NC}"
-	cd projects/hypery-hyperland && npm install
+	cd projects/hypery-hyperland/frontend && npm install
 	@echo "${GREEN}✓ All dependencies installed${NC}"
 
 build: ## Build all projects (landing page + hyperfy)
 	@echo "${BLUE}Building landing page...${NC}"
 	cd projects/frontend && npm run build
 	@echo "${BLUE}Building hyperfy...${NC}"
-	cd projects/hypery-hyperland && npm run build
+	cd projects/hypery-hyperland/frontend && npm run build
 	@echo "${GREEN}✓ All projects built${NC}"
 
 kill-ports: ## Kill any processes running on ports 4000 and 4001
@@ -83,7 +83,7 @@ landing: ## Start landing page dev server (port 4001)
 
 hyperfy: ## Start hyperfy dev server (port 4000)
 	@echo "${BLUE}[Hyperfy] Starting on port ${HYPERFY_PORT}...${NC}"
-	@cd projects/hypery-hyperland && PORT=$(HYPERFY_PORT) npm run dev
+	@cd projects/hypery-hyperland/frontend && PORT=$(HYPERFY_PORT) npm run dev
 
 test: ## Run all tests
 	@echo "${BLUE}Running contract tests...${NC}"
