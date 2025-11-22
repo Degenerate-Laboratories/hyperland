@@ -1,7 +1,9 @@
 {
-  "buildCommand": "cd projects/frontend && npm run build -- --webpack",
-  "outputDirectory": "projects/frontend/.next",
+  "version": 2,
+  "buildCommand": "npm run build -- --webpack",
+  "outputDirectory": ".next",
   "framework": "nextjs",
-  "installCommand": "cd projects/frontend && npm install",
-  "devCommand": "cd projects/frontend && npm run dev"
+  "installCommand": "npm install",
+  "devCommand": "npm run dev",
+  "cwd": "projects/frontend"
 }
