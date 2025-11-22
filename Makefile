@@ -53,14 +53,14 @@ install: init ## Install all dependencies (landing page + hyperfy)
 	cd projects/frontend && npm install
 	@echo "${GREEN}✓ Landing page dependencies installed${NC}"
 	@echo "${BLUE}Installing hyperfy dependencies...${NC}"
-	cd projects/hypery-hyperland/frontend && npm install
+	cd projects/hypery-hyperland && npm install
 	@echo "${GREEN}✓ All dependencies installed${NC}"
 
 build: ## Build all projects (landing page + hyperfy)
 	@echo "${BLUE}Building landing page...${NC}"
 	cd projects/frontend && npm run build
 	@echo "${BLUE}Building hyperfy...${NC}"
-	cd projects/hypery-hyperland/frontend && npm run build
+	cd projects/hypery-hyperland && npm run build
 	@echo "${GREEN}✓ All projects built${NC}"
 
 kill-ports: ## Kill any processes running on ports 4000 and 4001
@@ -83,7 +83,7 @@ landing: ## Start landing page dev server (port 4001)
 
 hyperfy: ## Start hyperfy dev server (port 4000)
 	@echo "${BLUE}[Hyperfy] Starting on port ${HYPERFY_PORT}...${NC}"
-	@cd projects/hypery-hyperland/frontend && PORT=$(HYPERFY_PORT) npm run dev
+	@cd projects/hypery-hyperland && PORT=$(HYPERFY_PORT) npm run dev
 
 test: ## Run all tests
 	@echo "${BLUE}Running contract tests...${NC}"
@@ -113,5 +113,24 @@ setup: init install ## Full setup (init + install all dependencies)
 	@echo "${GREEN}✓ Setup complete! Run 'make start' to run both services${NC}"
 
 all: build ## Build everything
+
+# Docker commands
+docker-build: ## Build Docker image for hyperfy
+	@echo "${BLUE}Building hyperfy Docker image...${NC}"
+	cd projects/hypery-hyperland && docker build -t hyperland:latest .
+	@echo "${GREEN}✓ Docker image built${NC}"
+
+docker-tag: ## Tag Docker image for DigitalOcean registry
+	@echo "${BLUE}Tagging Docker image...${NC}"
+	docker tag hyperland:latest registry.digitalocean.com/$$(doctl registry get --format Name --no-header)/hyperland:latest
+	@echo "${GREEN}✓ Docker image tagged${NC}"
+
+docker-push: ## Push Docker image to DigitalOcean registry
+	@echo "${BLUE}Pushing to DigitalOcean registry...${NC}"
+	doctl registry login
+	docker push registry.digitalocean.com/$$(doctl registry get --format Name --no-header)/hyperland:latest
+	@echo "${GREEN}✓ Docker image pushed${NC}"
+
+docker-all: docker-build docker-tag docker-push ## Build, tag, and push Docker image
 
 .DEFAULT_GOAL := help
