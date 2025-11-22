@@ -10,7 +10,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useAccount, useBalance, useReadContract, useWriteContract, useConfig } from 'wagmi';
-import { readContract } from '@wagmi/core';
+import { readContract, waitForTransactionReceipt } from '@wagmi/core';
 import { formatEther as formatEtherEthers, parseEther } from 'ethers';
 import { formatEther } from 'viem';
 import { LAND_TOKEN_ABI, HYPERLAND_CORE_ABI, PARCEL_SALE_ABI, ERC721_ABI } from './abis';
@@ -95,6 +95,7 @@ export function HyperLandProvider({ children }: { children: ReactNode }) {
   const [ownedTokenIds, setOwnedTokenIds] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Contract interaction hooks
   const { writeContractAsync } = useWriteContract();
@@ -168,7 +169,7 @@ export function HyperLandProvider({ children }: { children: ReactNode }) {
     loadOwnedParcels();
   }, [isConnected, address, config]);
 
-  // Load all 1,205 pre-defined parcels as available for initial purchase
+  // Load all 1,205 pre-defined parcels and check for blockchain listings
   useEffect(() => {
     async function loadParcels() {
       setIsLoading(true);
@@ -194,6 +195,43 @@ export function HyperLandProvider({ children }: { children: ReactNode }) {
           },
         }));
 
+        // Check blockchain for actual listings for owned parcels
+        if (ownedTokenIds.length > 0) {
+          console.log(`Checking blockchain listings for ${ownedTokenIds.length} owned parcels...`);
+
+          for (const tokenId of ownedTokenIds) {
+            try {
+              const listing = await readContract(config, {
+                address: HYPERLAND_CORE,
+                abi: HYPERLAND_CORE_ABI,
+                functionName: 'listings',
+                args: [BigInt(tokenId)],
+              }) as { seller: string; priceLAND: bigint; active: boolean };
+
+              const parcelIndex = parcels.findIndex(p => p.tokenId === tokenId);
+              if (parcelIndex !== -1 && listing.active) {
+                // Update with blockchain listing data
+                parcels[parcelIndex] = {
+                  ...parcels[parcelIndex],
+                  listing: {
+                    price: formatEtherEthers(listing.priceLAND.toString()),
+                    seller: listing.seller,
+                  },
+                };
+                console.log(`✅ Found active listing for parcel ${tokenId}: ${formatEtherEthers(listing.priceLAND.toString())} LAND`);
+              } else if (parcelIndex !== -1 && !listing.active) {
+                // Parcel is owned but not listed - remove listing
+                parcels[parcelIndex] = {
+                  ...parcels[parcelIndex],
+                  listing: undefined,
+                };
+              }
+            } catch (err) {
+              console.warn(`Could not check listing for token ${tokenId}:`, err);
+            }
+          }
+        }
+
         console.log(`✅ Loaded ${parcels.length} parcels available for initial purchase`);
         setAllParcels(parcels);
       } catch (err) {
@@ -205,18 +243,75 @@ export function HyperLandProvider({ children }: { children: ReactNode }) {
     }
 
     loadParcels();
-  }, []);
+  }, [ownedTokenIds, config, refreshTrigger]);
 
   // Actions
   async function buyLAND(ethAmount: string) {
     throw new Error('Use /buy-land page with DEX integration');
   }
 
-  async function listParcel(tokenId: number, price: string) {
-    throw new Error('Listing functionality coming soon');
+  async function listParcel(tokenId: number, price: string): Promise<void> {
+    if (!address) {
+      throw new Error('Please connect your wallet');
+    }
+
+    try {
+      console.log(`Listing parcel ${tokenId} for ${price} LAND...`);
+
+      // Convert price to wei (assuming price is in LAND tokens)
+      const priceLAND = parseEther(price);
+
+      // Verify ownership
+      const owner = await readContract(config, {
+        address: LAND_DEED,
+        abi: ERC721_ABI,
+        functionName: 'ownerOf',
+        args: [BigInt(tokenId)],
+      }) as string;
+
+      if (owner.toLowerCase() !== address.toLowerCase()) {
+        throw new Error('You are not the owner of this parcel');
+      }
+
+      // Step 1: Approve NFT transfer to HyperLandCore
+      console.log('Step 1/2: Approving NFT transfer...');
+      const approveTxHash = await writeContractAsync({
+        address: LAND_DEED,
+        abi: ERC721_ABI,
+        functionName: 'approve',
+        args: [HYPERLAND_CORE, BigInt(tokenId)],
+      });
+
+      console.log('NFT approval transaction submitted:', approveTxHash);
+      console.log('Waiting for approval confirmation...');
+
+      // Wait for the approval transaction to be mined
+      const approvalReceipt = await waitForTransactionReceipt(config, {
+        hash: approveTxHash,
+      });
+
+      console.log('✅ NFT approval confirmed! Block:', approvalReceipt.blockNumber);
+
+      // Step 2: List the parcel
+      console.log('Step 2/2: Listing parcel...');
+      const listTxHash = await writeContractAsync({
+        address: HYPERLAND_CORE,
+        abi: HYPERLAND_CORE_ABI,
+        functionName: 'listDeed',
+        args: [BigInt(tokenId), priceLAND],
+      });
+
+      console.log('✅ Parcel listed successfully! Transaction:', listTxHash);
+
+      // Trigger a refresh to update the listing data
+      setRefreshTrigger(prev => prev + 1);
+    } catch (err) {
+      console.error('Listing error:', err);
+      throw err;
+    }
   }
 
-  async function buyParcel(tokenId: number) {
+  async function buyParcel(tokenId: number): Promise<void> {
     if (!address) {
       throw new Error('Please connect your wallet');
     }
@@ -249,15 +344,79 @@ export function HyperLandProvider({ children }: { children: ReactNode }) {
       });
 
       console.log('Purchase transaction:', purchaseTx);
-      return purchaseTx;
     } catch (err) {
       console.error('Purchase error:', err);
       throw err;
     }
   }
 
-  async function payTaxes(tokenId: number) {
-    throw new Error('Tax payment functionality coming soon');
+  async function payTaxes(tokenId: number): Promise<void> {
+    if (!address) {
+      throw new Error('Please connect your wallet');
+    }
+
+    try {
+      console.log(`Calculating taxes owed for parcel ${tokenId}...`);
+
+      // Calculate taxes owed
+      const taxOwed = await readContract(config, {
+        address: HYPERLAND_CORE,
+        abi: HYPERLAND_CORE_ABI,
+        functionName: 'calculateTaxOwed',
+        args: [BigInt(tokenId)],
+      }) as bigint;
+
+      console.log(`Tax owed: ${formatEtherEthers(taxOwed.toString())} LAND`);
+
+      if (taxOwed === 0n) {
+        throw new Error('No taxes owed');
+      }
+
+      // Check if user has enough LAND balance
+      const userBalance = await readContract(config, {
+        address: LAND_TOKEN,
+        abi: LAND_TOKEN_ABI,
+        functionName: 'balanceOf',
+        args: [address as `0x${string}`],
+      }) as bigint;
+
+      if (userBalance < taxOwed) {
+        throw new Error(`Insufficient LAND balance. Need ${formatEtherEthers(taxOwed.toString())} LAND`);
+      }
+
+      // Step 1: Approve LAND token spending and wait for confirmation
+      console.log('Step 1/2: Approving LAND tokens for tax payment...');
+      const approveTxHash = await writeContractAsync({
+        address: LAND_TOKEN,
+        abi: LAND_TOKEN_ABI,
+        functionName: 'approve',
+        args: [HYPERLAND_CORE, taxOwed],
+      });
+
+      console.log('Approval transaction submitted:', approveTxHash);
+      console.log('Waiting for approval confirmation...');
+
+      // Wait for the approval transaction to be mined
+      const approvalReceipt = await waitForTransactionReceipt(config, {
+        hash: approveTxHash,
+      });
+
+      console.log('✅ Approval confirmed! Block:', approvalReceipt.blockNumber);
+
+      // Step 2: Pay taxes
+      console.log('Step 2/2: Paying taxes...');
+      const payTxHash = await writeContractAsync({
+        address: HYPERLAND_CORE,
+        abi: HYPERLAND_CORE_ABI,
+        functionName: 'payTaxes',
+        args: [BigInt(tokenId)],
+      });
+
+      console.log('✅ Tax payment successful! Transaction:', payTxHash);
+    } catch (err) {
+      console.error('Tax payment error:', err);
+      throw err;
+    }
   }
 
   async function placeBid(tokenId: number, amount: string) {
@@ -279,7 +438,7 @@ export function HyperLandProvider({ children }: { children: ReactNode }) {
         .map(p => ({
           ...p,
           owner: address, // Set actual owner
-          listing: undefined, // Remove listing if owned
+          // Keep listing if it exists (from blockchain data) - don't remove it!
         }))
     : [];
 

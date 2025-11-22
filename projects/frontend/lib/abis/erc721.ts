@@ -1,6 +1,6 @@
 /**
- * Standard ERC721 ABI for NFT queries
- * Used for querying LAND_DEED contract
+ * Standard ERC721 ABI for NFT queries and operations
+ * Used for querying and interacting with LAND_DEED contract
  */
 
 export const ERC721_ABI = [
@@ -26,6 +26,27 @@ export const ERC721_ABI = [
     name: 'ownerOf',
     outputs: [{ name: '', type: 'address' }],
     stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'to', type: 'address' },
+      { name: 'tokenId', type: 'uint256' },
+    ],
+    name: 'approve',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'from', type: 'address' },
+      { name: 'to', type: 'address' },
+      { name: 'tokenId', type: 'uint256' },
+    ],
+    name: 'transferFrom',
+    outputs: [],
+    stateMutability: 'nonpayable',
     type: 'function',
   },
 ] as const;
