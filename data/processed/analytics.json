@@ -1,0 +1,41 @@
+{
+  "totalParcels": 1205,
+  "byRing": {
+    "Esplanade": {
+      "count": 241,
+      "totalValue": 241000,
+      "avgValue": 1000
+    },
+    "Afanc": {
+      "count": 241,
+      "totalValue": 144600,
+      "avgValue": 600
+    },
+    "MidCity": {
+      "count": 241,
+      "totalValue": 192800,
+      "avgValue": 800
+    },
+    "Igopogo": {
+      "count": 241,
+      "totalValue": 96400,
+      "avgValue": 400
+    },
+    "Kraken": {
+      "count": 241,
+      "totalValue": 48200,
+      "avgValue": 200
+    }
+  },
+  "coordinateRanges": {
+    "x": {
+      "min": -9682,
+      "max": 4914
+    },
+    "y": {
+      "min": -9682,
+      "max": 9682
+    }
+  },
+  "totalValue": 723000
+}

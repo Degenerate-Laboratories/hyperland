@@ -2,7 +2,7 @@
  * Main HyperLand SDK Client
  */
 
-import { ethers, Provider, Signer, Contract } from 'ethers';
+import { JsonRpcProvider, Provider, Signer, Contract } from 'ethers';
 import { NETWORK_CONFIGS, NetworkConfig } from '../config/addresses';
 import { LAND_ABI, LandDeed_ABI, HyperLandCore_ABI } from '../abis';
 import { LANDClient } from './LANDClient';
@@ -42,7 +42,7 @@ export class HyperLandClient {
       if (!networkConfig) {
         throw new Error(`Unknown network: ${networkName}`);
       }
-      this.provider = new ethers.JsonRpcProvider(networkConfig.rpcUrl);
+      this.provider = new JsonRpcProvider(networkConfig.rpcUrl);
     }
 
     this.signer = config.signer;

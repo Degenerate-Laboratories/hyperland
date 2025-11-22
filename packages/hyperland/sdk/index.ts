@@ -12,7 +12,13 @@ export { LANDClient } from './client/LANDClient';
 export { LandDeedClient } from './client/LandDeedClient';
 export type { ParcelData, ParcelInfo } from './client/LandDeedClient';
 export { HyperLandCoreClient } from './client/HyperLandCoreClient';
-export type { ParcelState, Listing, AuctionState } from './client/HyperLandCoreClient';
+export type { ParcelState, Listing, AuctionState, Assessor, AssessedValue } from './client/HyperLandCoreClient';
+
+// Services (NEW in V2)
+export { MarketplaceService, ParcelService, UserService, AssessorService } from './services';
+
+// Types (NEW in V2)
+export * from './types';
 
 // Configuration
 export { NETWORK_CONFIGS, getNetworkByChainId, validateAddresses } from './config/addresses';

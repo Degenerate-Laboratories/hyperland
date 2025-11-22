@@ -9,10 +9,10 @@ import { LandDeedClient } from './LandDeedClient';
 import { CONSTANTS, calculateTax } from '../config/constants';
 
 export interface ParcelState {
-  owner: string;
   assessedValueLAND: bigint;
   lastTaxPaidCycle: bigint;
   lienStartCycle: bigint;
+  lienHolder: string;
   lienActive: boolean;
   inAuction: boolean;
 }
@@ -28,7 +28,23 @@ export interface AuctionState {
   highestBidder: string;
   highestBid: bigint;
   endTime: bigint;
+  originalOwner: string;
   active: boolean;
+}
+
+export interface Assessor {
+  isActive: boolean;
+  registeredAt: bigint;
+  assessmentCount: bigint;
+  credentials: string;
+}
+
+export interface AssessedValue {
+  value: bigint;
+  assessor: string;
+  timestamp: bigint;
+  methodology: string;
+  approved: boolean;
 }
 
 export class HyperLandCoreClient {
@@ -102,29 +118,49 @@ export class HyperLandCoreClient {
    * Get parcel state
    */
   async getParcel(parcelId: bigint): Promise<ParcelState> {
-    const parcel = await this.readOnlyContract.parcels(parcelId);
+    const parcel = await this.readOnlyContract.parcelStates(parcelId);
     return {
-      owner: parcel.owner,
       assessedValueLAND: parcel.assessedValueLAND,
       lastTaxPaidCycle: parcel.lastTaxPaidCycle,
       lienStartCycle: parcel.lienStartCycle,
+      lienHolder: parcel.lienHolder,
       lienActive: parcel.lienActive,
       inAuction: parcel.inAuction,
     };
   }
 
   /**
-   * Mint initial parcel (admin only)
+   * Alias for getParcel for compatibility
    */
-  async mintInitialParcel(
+  async getParcelState(parcelId: bigint): Promise<ParcelState> {
+    return this.getParcel(parcelId);
+  }
+
+  /**
+   * Mint a new parcel (admin only)
+   */
+  async mintParcel(
     to: string,
     x: bigint,
     y: bigint,
     size: bigint,
     assessedValue: bigint
   ) {
-    if (!this.signer) throw new Error('Signer required for mintInitialParcel');
-    const tx = await this.contract.mintInitialParcel(to, x, y, size, assessedValue);
+    if (!this.signer) throw new Error('Signer required for mintParcel');
+    const tx = await this.contract.mintParcel(to, x, y, size, assessedValue);
+    return await tx.wait();
+  }
+
+  /**
+   * Initialize a newly minted parcel (admin only)
+   */
+  async initializeParcel(
+    parcelId: bigint,
+    owner: string,
+    assessedValue: bigint
+  ) {
+    if (!this.signer) throw new Error('Signer required for initializeParcel');
+    const tx = await this.contract.initializeParcel(parcelId, owner, assessedValue);
     return await tx.wait();
   }
 
@@ -210,6 +246,162 @@ export class HyperLandCoreClient {
     return await tx.wait();
   }
 
+  /**
+   * Pay taxes in advance for multiple cycles
+   */
+  async payTaxesInAdvance(parcelId: bigint, cycles: bigint) {
+    if (!this.signer) throw new Error('Signer required for payTaxesInAdvance');
+
+    // Calculate total tax for advance payment
+    const parcelState = await this.getParcelState(parcelId);
+    const taxRateBP = await this.taxRateBP();
+    const currentCycle = await this.getCurrentCycle();
+
+    const cyclesOwed = currentCycle > parcelState.lastTaxPaidCycle
+      ? currentCycle - parcelState.lastTaxPaidCycle
+      : 0n;
+
+    const totalCyclesToPay = cyclesOwed + cycles;
+    const taxPerCycle = (parcelState.assessedValueLAND * taxRateBP) / 10000n;
+    const totalTax = taxPerCycle * totalCyclesToPay;
+
+    // Approve LAND tokens first
+    await this.landClient.approve(this.address, totalTax);
+
+    const tx = await this.contract.payTaxesInAdvance(parcelId, cycles);
+    return await tx.wait();
+  }
+
+  /**
+   * Calculate taxes owed for multiple parcels (batch)
+   */
+  async calculateTaxOwedBatch(parcelIds: bigint[]): Promise<bigint[]> {
+    return await this.readOnlyContract.calculateTaxOwedBatch(parcelIds);
+  }
+
+  /**
+   * Get parcel states for multiple parcels (batch)
+   */
+  async getParcelStatesBatch(parcelIds: bigint[]): Promise<ParcelState[]> {
+    const states = await this.readOnlyContract.getParcelStatesBatch(parcelIds);
+    return states.map((state: any) => ({
+      assessedValueLAND: state.assessedValueLAND,
+      lastTaxPaidCycle: state.lastTaxPaidCycle,
+      lienStartCycle: state.lienStartCycle,
+      lienHolder: state.lienHolder,
+      lienActive: state.lienActive,
+      inAuction: state.inAuction,
+    }));
+  }
+
+  // ===== Assessor Registry System =====
+
+  /**
+   * Register a new assessor (admin only)
+   */
+  async registerAssessor(assessorAddress: string, credentials: string) {
+    if (!this.signer) throw new Error('Signer required for registerAssessor');
+    const tx = await this.contract.registerAssessor(assessorAddress, credentials);
+    return await tx.wait();
+  }
+
+  /**
+   * Revoke an assessor's privileges (admin only)
+   */
+  async revokeAssessor(assessorAddress: string) {
+    if (!this.signer) throw new Error('Signer required for revokeAssessor');
+    const tx = await this.contract.revokeAssessor(assessorAddress);
+    return await tx.wait();
+  }
+
+  /**
+   * Submit a property valuation (approved assessors only)
+   */
+  async submitValuation(parcelId: bigint, proposedValue: bigint, methodology: string) {
+    if (!this.signer) throw new Error('Signer required for submitValuation');
+    const tx = await this.contract.submitValuation(parcelId, proposedValue, methodology);
+    return await tx.wait();
+  }
+
+  /**
+   * Approve a submitted valuation (admin only)
+   */
+  async approveValuation(parcelId: bigint, valueIndex: bigint) {
+    if (!this.signer) throw new Error('Signer required for approveValuation');
+    const tx = await this.contract.approveValuation(parcelId, valueIndex);
+    return await tx.wait();
+  }
+
+  /**
+   * Reject a submitted valuation with reason (admin only)
+   */
+  async rejectValuation(parcelId: bigint, valueIndex: bigint, reason: string) {
+    if (!this.signer) throw new Error('Signer required for rejectValuation');
+    const tx = await this.contract.rejectValuation(parcelId, valueIndex, reason);
+    return await tx.wait();
+  }
+
+  /**
+   * Get valuation history for a parcel
+   */
+  async getValuationHistory(parcelId: bigint): Promise<AssessedValue[]> {
+    const valuations = await this.readOnlyContract.getValuationHistory(parcelId);
+    return valuations.map((val: any) => ({
+      value: val.value,
+      assessor: val.assessor,
+      timestamp: val.timestamp,
+      methodology: val.methodology,
+      approved: val.approved,
+    }));
+  }
+
+  /**
+   * Get pending (unapproved) valuations for a parcel
+   */
+  async getPendingValuations(parcelId: bigint): Promise<AssessedValue[]> {
+    const valuations = await this.readOnlyContract.getPendingValuations(parcelId);
+    return valuations.map((val: any) => ({
+      value: val.value,
+      assessor: val.assessor,
+      timestamp: val.timestamp,
+      methodology: val.methodology,
+      approved: val.approved,
+    }));
+  }
+
+  /**
+   * Check if an address is an approved assessor
+   */
+  async isApprovedAssessor(assessorAddress: string): Promise<boolean> {
+    return await this.readOnlyContract.isApprovedAssessor(assessorAddress);
+  }
+
+  /**
+   * Get assessor information
+   */
+  async getAssessorInfo(assessorAddress: string): Promise<Assessor> {
+    const info = await this.readOnlyContract.getAssessorInfo(assessorAddress);
+    return {
+      isActive: info.isActive,
+      registeredAt: info.registeredAt,
+      assessmentCount: info.assessmentCount,
+      credentials: info.credentials,
+    };
+  }
+
+  /**
+   * Get approved assessors (requires mapping through approvedAssessors)
+   */
+  async approvedAssessors(assessorAddress: string): Promise<Assessor> {
+    const assessor = await this.readOnlyContract.approvedAssessors(assessorAddress);
+    return {
+      isActive: assessor.isActive,
+      registeredAt: assessor.registeredAt,
+      assessmentCount: assessor.assessmentCount,
+      credentials: assessor.credentials,
+    };
+  }
+
   // ===== Auction Operations =====
 
   /**
@@ -222,8 +414,23 @@ export class HyperLandCoreClient {
       highestBidder: auction.highestBidder,
       highestBid: auction.highestBid,
       endTime: auction.endTime,
+      originalOwner: auction.originalOwner,
       active: auction.active,
     };
+  }
+
+  /**
+   * Check if auction can be started for a parcel
+   */
+  async canStartAuction(parcelId: bigint): Promise<boolean> {
+    return await this.readOnlyContract.canStartAuction(parcelId);
+  }
+
+  /**
+   * Check if parcel is delinquent (has unpaid taxes)
+   */
+  async isDelinquent(parcelId: bigint): Promise<boolean> {
+    return await this.readOnlyContract.isDelinquent(parcelId);
   }
 
   /**

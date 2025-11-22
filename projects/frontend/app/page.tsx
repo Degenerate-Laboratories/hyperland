@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useHyperLand } from '@/lib/hyperland-context';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { WalletAuth } from '@/components/WalletAuth';
 
 export default function Home() {
   const { stats, isMockMode, isConnected } = useHyperLand();
@@ -93,16 +93,14 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CTA */}
+      {/* Authentication & World Entry */}
       <section className="text-center py-12">
-        <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
+        <h2 className="text-3xl font-bold mb-4">Ready to Enter HyperLand?</h2>
         <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
-          {isConnected
-            ? "Start exploring HyperLand and manage your land parcels"
-            : "Connect your wallet to start exploring HyperLand"}
+          Connect your wallet and authenticate to enter the 3D world
         </p>
-        <div className="flex justify-center">
-          <ConnectButton />
+        <div className="max-w-md mx-auto">
+          <WalletAuth />
         </div>
       </section>
     </div>

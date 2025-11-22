@@ -32,6 +32,9 @@ yarn-error.log*
 cache/
 out/
 broadcast/
+contracts/broadcast/
+contracts/cache/
+contracts/out/
 
 # IDE
 .vscode/
