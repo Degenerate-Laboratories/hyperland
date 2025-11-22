@@ -30,6 +30,20 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
+      - name: Debug - Check submodule status
+        run: |
+          echo "Checking submodule status..."
+          git submodule status
+          echo "Checking if Dockerfile exists..."
+          ls -la ./projects/hypery-hyperland/ || echo "Directory not found"
+          if [ -f "./projects/hypery-hyperland/Dockerfile" ]; then
+            echo "✓ Dockerfile found"
+          else
+            echo "✗ Dockerfile NOT found - will initialize submodule"
+            git submodule update --init --recursive
+            ls -la ./projects/hypery-hyperland/
+          fi
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
