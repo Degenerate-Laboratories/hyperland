@@ -17,6 +17,8 @@ import { ControlPriorities } from '../../core/extras/ControlPriorities'
 // import { MenuApp } from './MenuApp'
 import { ChevronDoubleUpIcon, HandIcon } from './Icons'
 import { Sidebar } from './Sidebar'
+import { PositionDisplay } from './PositionDisplay'
+import { ParcelDisplay } from './ParcelDisplay'
 
 export function CoreUI({ world }) {
   const ref = useRef()
@@ -91,6 +93,8 @@ export function CoreUI({ world }) {
         overflow: hidden;
       `}
     >
+      {ready && <PositionDisplay world={world} />}
+      {ready && <ParcelDisplay world={world} />}
       {disconnected && <Disconnected />}
       {!ui.reticleSuppressors && <Reticle world={world} />}
       {<Toast world={world} />}

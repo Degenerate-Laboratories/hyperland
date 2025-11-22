@@ -79,14 +79,18 @@ export class AssetsS3 {
 
       const [, accessKeyId, secretAccessKey, rest] = credentialsMatch
 
+      // URL-decode credentials in case they contain special characters
+      const decodedAccessKeyId = decodeURIComponent(accessKeyId)
+      const decodedSecretAccessKey = decodeURIComponent(secretAccessKey)
+
       // Parse the rest of the URI
       const parts = rest.split('/')
       const host = parts[0]
       const pathParts = parts.slice(1)
 
       let config = {
-        accessKeyId,
-        secretAccessKey,
+        accessKeyId: decodedAccessKeyId,
+        secretAccessKey: decodedSecretAccessKey,
         forcePathStyle: false,
       }
 

@@ -441,4 +441,26 @@ const migrations = [
       await trx.schema.renameTable('_config_new', 'config')
     })
   },
+  // add Twitter OAuth fields to users table
+  async db => {
+    await db.schema.alterTable('users', table => {
+      table.string('provider').nullable().defaultTo('local')
+      table.string('providerId').nullable()
+      table.string('email').nullable()
+      table.string('profileImage').nullable()
+      table.timestamp('lastLogin').nullable()
+    })
+  },
+  // add parcel_ownership table for land ownership (BRC parcels)
+  async db => {
+    await db.schema.createTable('parcel_ownership', table => {
+      table.string('parcelId').primary() // BRC-0001, etc
+      table.string('ownerId').notNullable()
+      table.string('ownerName').notNullable()
+      table.timestamp('purchasedAt').notNullable()
+      table.timestamp('updatedAt').notNullable()
+      table.foreign('ownerId').references('users.id').onDelete('CASCADE')
+      table.index('ownerId')
+    })
+  },
 ]

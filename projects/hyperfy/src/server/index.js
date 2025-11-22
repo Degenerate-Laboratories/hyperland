@@ -217,6 +217,155 @@ fastify.get('/status', async (request, reply) => {
   }
 })
 
+// Parcel Ownership API endpoints
+// Get all parcels (from CSV data)
+fastify.get('/api/parcels', async (request, reply) => {
+  try {
+    // Load and parse CSV data
+    const csvPath = path.join(rootDir, '../data/BRC_ALL_1200_PARCELS.csv')
+    const csvContent = await fs.readFile(csvPath, 'utf-8')
+    const lines = csvContent.split('\n').filter(line => line.trim())
+    const headers = lines[0].split(',')
+
+    const parcels = []
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(',')
+      if (values.length >= 10) {
+        parcels.push({
+          id: values[0],
+          number: parseInt(values[1]),
+          ring: values[2],
+          sector: values[3],
+          address: values[4].replace(/"/g, ''),
+          x: parseFloat(values[5]),
+          y: parseFloat(values[6]),
+          latitude: parseFloat(values[7]),
+          longitude: parseFloat(values[8]),
+          innerRadius: parseInt(values[9]),
+          outerRadius: parseInt(values[10])
+        })
+      }
+    }
+
+    reply.code(200).send({ parcels })
+  } catch (error) {
+    console.error('Error loading parcels:', error)
+    reply.code(500).send({ error: 'Failed to load parcels' })
+  }
+})
+
+// Get all owned parcels
+fastify.get('/api/parcel-ownership', async (request, reply) => {
+  try {
+    const ownedParcels = await db('parcel_ownership')
+      .select('*')
+      .orderBy('parcelId', 'asc')
+
+    reply.code(200).send({ ownedParcels })
+  } catch (error) {
+    console.error('Error fetching parcel ownership:', error)
+    reply.code(500).send({ error: 'Failed to fetch parcel ownership' })
+  }
+})
+
+// Purchase a parcel
+fastify.post('/api/parcel-ownership/:parcelId/purchase', async (request, reply) => {
+  try {
+    console.log('[parcel-purchase] Request received for parcel:', request.params.parcelId)
+
+    const { parcelId } = request.params
+
+    // Validate parcelId format (BRC-####)
+    if (!/^BRC-\d{4}$/.test(parcelId)) {
+      console.log('[parcel-purchase] Invalid parcel ID:', parcelId)
+      return reply.code(400).send({ error: 'Invalid parcel ID' })
+    }
+
+    // Get user from auth token
+    const authHeader = request.headers.authorization
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log('[parcel-purchase] Missing or invalid auth header')
+      return reply.code(401).send({ error: 'Unauthorized - please log in' })
+    }
+
+    const token = authHeader.substring(7)
+    const { readJWT } = await import('../core/utils-server')
+    const tokenData = await readJWT(token)
+    if (!tokenData) {
+      return reply.code(401).send({ error: 'Invalid token' })
+    }
+
+    const userId = tokenData.id || tokenData.userId
+    console.log('[parcel-purchase] User ID from token:', userId)
+
+    // Verify user exists
+    const user = await db('users').where('id', userId).first()
+    if (!user) {
+      console.log('[parcel-purchase] User not found in database:', userId)
+      return reply.code(404).send({ error: 'User not found' })
+    }
+
+    console.log('[parcel-purchase] User found:', user.name)
+
+    // Check if parcel is already owned
+    const existingOwner = await db('parcel_ownership')
+      .where('parcelId', parcelId)
+      .first()
+
+    if (existingOwner) {
+      console.log('[parcel-purchase] Parcel already owned by:', existingOwner.ownerName)
+      return reply.code(409).send({
+        error: 'Parcel already owned',
+        owner: {
+          ownerId: existingOwner.ownerId,
+          ownerName: existingOwner.ownerName,
+          purchasedAt: existingOwner.purchasedAt
+        }
+      })
+    }
+
+    const moment = (await import('moment')).default
+    const now = moment().toISOString()
+
+    console.log('[parcel-purchase] Inserting ownership record for parcel', parcelId)
+
+    // Insert ownership record - first come, first serve!
+    await db('parcel_ownership').insert({
+      parcelId: parcelId,
+      ownerId: userId,
+      ownerName: user.name,
+      purchasedAt: now,
+      updatedAt: now
+    })
+
+    console.log('[parcel-purchase] Ownership inserted successfully')
+
+    // Broadcast to all connected clients that this parcel is now owned
+    world.network.send('parcelPurchased', {
+      parcelId: parcelId,
+      ownerId: userId,
+      ownerName: user.name,
+      purchasedAt: now
+    })
+
+    console.log(`[parcel-ownership] User ${user.name} (${userId}) purchased parcel ${parcelId}`)
+
+    reply.code(200).send({
+      success: true,
+      message: `Successfully purchased parcel ${parcelId}!`,
+      ownership: {
+        parcelId: parcelId,
+        ownerId: userId,
+        ownerName: user.name,
+        purchasedAt: now
+      }
+    })
+  } catch (error) {
+    console.error('Error purchasing parcel:', error)
+    reply.code(500).send({ error: 'Failed to purchase parcel' })
+  }
+})
+
 fastify.setErrorHandler((err, req, reply) => {
   console.error(err)
   reply.status(500).send()
