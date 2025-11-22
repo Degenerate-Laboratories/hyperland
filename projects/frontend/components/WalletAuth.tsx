@@ -162,11 +162,11 @@ export function WalletAuth() {
                   Authenticated
                 </p>
                 <p className="text-xs text-gray-700 dark:text-gray-300 mt-2">
-                  <strong>Name:</strong> {user.name}
+                  <strong>Name:</strong> {user?.name}
                   <br />
-                  <strong>Wallet:</strong> {user.walletAddress.slice(0, 6)}...{user.walletAddress.slice(-4)}
+                  <strong>Wallet:</strong> {user?.walletAddress.slice(0, 6)}...{user?.walletAddress.slice(-4)}
                   <br />
-                  <strong>Rank:</strong> {user.rank === 2 ? 'Admin' : user.rank === 1 ? 'Builder' : 'Visitor'}
+                  <strong>Rank:</strong> {user?.rank === 2 ? 'Admin' : user?.rank === 1 ? 'Builder' : 'Visitor'}
                 </p>
               </div>
             </div>

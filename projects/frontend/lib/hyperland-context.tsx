@@ -20,11 +20,16 @@ interface TempParcel {
   tokenId: number;
   x: number;
   y: number;
+  size: number;
   owner: string;
+  assessedValue: string;
+  lastTaxPaidCycle: number;
+  lienActive: boolean;
+  inAuction: boolean;
   taxDeadline: number;
   isDelinquent: boolean;
   listing?: { price: string; seller: string };
-  auction?: { startPrice: string; endTime: number; bids: Array<{ bidder: string; amount: string }> };
+  auction?: { highestBid: string; highestBidder: string; endTime: number };
 }
 
 interface HyperLandContextType {
@@ -186,7 +191,12 @@ export function HyperLandProvider({ children }: { children: ReactNode }) {
           tokenId: parcel.parcelNumber,
           x: parcel.x,
           y: parcel.y,
+          size: 100, // Default size
           owner: '0x0000000000000000000000000000000000000000', // Default: Available for purchase
+          assessedValue: parcel.assessedValue.toString(),
+          lastTaxPaidCycle: 0,
+          lienActive: false,
+          inAuction: false,
           taxDeadline: 0,
           isDelinquent: false,
           listing: {

@@ -1,7 +1,10 @@
-export default function LandDetail({ params }: { params: { id: string } }) {
+export default async function LandDetail({ params }: { params: Promise<{ id: string }> }) {
+  // Await params as required in Next.js 16
+  const { id } = await params;
+
   // Mock data - will be replaced with smart contract data
   const parcel = {
-    id: params.id,
+    id: id,
     coordinates: { x: 10, y: 20 },
     size: 100,
     assessedValue: 500,
