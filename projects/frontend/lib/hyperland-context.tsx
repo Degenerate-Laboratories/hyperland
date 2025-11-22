@@ -9,9 +9,11 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { useAccount, useBalance, useReadContract, useWriteContract } from 'wagmi';
-import { formatEther, parseEther } from 'ethers';
-import { LAND_TOKEN_ABI, HYPERLAND_CORE_ABI, PARCEL_SALE_ABI } from './abis';
+import { useAccount, useBalance, useReadContract, useWriteContract, useConfig } from 'wagmi';
+import { readContract } from '@wagmi/core';
+import { formatEther as formatEtherEthers, parseEther } from 'ethers';
+import { formatEther } from 'viem';
+import { LAND_TOKEN_ABI, HYPERLAND_CORE_ABI, PARCEL_SALE_ABI, ERC721_ABI } from './abis';
 
 // Temporary data types until we have real blockchain indexing
 interface TempParcel {
@@ -90,11 +92,13 @@ export function HyperLandProvider({ children }: { children: ReactNode }) {
   const [landBalance, setLandBalance] = useState('0');
   const [ethBalance, setEthBalance] = useState('0');
   const [allParcels, setAllParcels] = useState<TempParcel[]>([]);
+  const [ownedTokenIds, setOwnedTokenIds] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Contract interaction hooks
   const { writeContractAsync } = useWriteContract();
+  const config = useConfig();
 
   // Update balances from blockchain data
   useEffect(() => {
@@ -103,10 +107,66 @@ export function HyperLandProvider({ children }: { children: ReactNode }) {
         setEthBalance(ethBalanceData.formatted);
       }
       if (landBalanceData) {
-        setLandBalance(formatEther(landBalanceData.toString()));
+        setLandBalance(formatEtherEthers(landBalanceData.toString()));
       }
     }
   }, [ethBalanceData, landBalanceData, isConnected]);
+
+  // Load user's owned parcels from blockchain
+  useEffect(() => {
+    async function loadOwnedParcels() {
+      if (!isConnected || !address || !PARCEL_SALE) {
+        setOwnedTokenIds([]);
+        return;
+      }
+
+      try {
+        console.log('Fetching owned parcels from blockchain...');
+
+        // Get next token ID from PrimarySaleV3 (tells us how many have been sold)
+        const nextTokenId = await readContract(config, {
+          address: PARCEL_SALE,
+          abi: PARCEL_SALE_ABI,
+          functionName: 'nextTokenId',
+        });
+
+        const totalSold = Number(nextTokenId) - 1; // nextTokenId is 1-indexed
+        console.log(`Total parcels sold: ${totalSold}`);
+
+        if (totalSold === 0) {
+          setOwnedTokenIds([]);
+          return;
+        }
+
+        // Check ownership for each sold parcel
+        const tokenIds: number[] = [];
+        for (let tokenId = 1; tokenId <= totalSold; tokenId++) {
+          try {
+            const owner = await readContract(config, {
+              address: LAND_DEED,
+              abi: ERC721_ABI,
+              functionName: 'ownerOf',
+              args: [BigInt(tokenId)],
+            });
+
+            if (owner.toLowerCase() === address.toLowerCase()) {
+              tokenIds.push(tokenId);
+            }
+          } catch (err) {
+            // Token doesn't exist or error - skip it
+            console.warn(`Could not check ownership for token ${tokenId}:`, err);
+          }
+        }
+
+        console.log(`✅ User owns ${tokenIds.length} parcel(s): ${tokenIds.join(', ')}`);
+        setOwnedTokenIds(tokenIds);
+      } catch (err) {
+        console.error('Error loading owned parcels:', err);
+      }
+    }
+
+    loadOwnedParcels();
+  }, [isConnected, address, config]);
 
   // Load all 1,205 pre-defined parcels as available for initial purchase
   useEffect(() => {
@@ -125,7 +185,7 @@ export function HyperLandProvider({ children }: { children: ReactNode }) {
           tokenId: parcel.parcelNumber,
           x: parcel.x,
           y: parcel.y,
-          owner: '0x0000000000000000000000000000000000000000', // Available for purchase
+          owner: '0x0000000000000000000000000000000000000000', // Default: Available for purchase
           taxDeadline: 0,
           isDelinquent: false,
           listing: {
@@ -165,39 +225,27 @@ export function HyperLandProvider({ children }: { children: ReactNode }) {
       throw new Error('ParcelSale contract not configured. Please set NEXT_PUBLIC_PARCEL_SALE_ADDRESS');
     }
 
-    if (!LAND_TOKEN) {
-      throw new Error('LAND Token address not configured');
-    }
-
-    const parcel = getParcel(tokenId);
-    if (!parcel || !parcel.listing) {
-      throw new Error('Parcel not found or not available');
-    }
-
-    const priceInWei = parseEther(parcel.listing.price);
-
     try {
-      // First approve the LAND token spend to ParcelSale contract
-      console.log(`Approving ${parcel.listing.price} LAND for ParcelSale contract...`);
-      const approveTx = await writeContractAsync({
-        address: LAND_TOKEN,
-        abi: LAND_TOKEN_ABI,
-        functionName: 'approve',
-        args: [PARCEL_SALE, priceInWei],
+      // Get current price from PrimarySaleV3
+      const currentPrice = await readContract(config, {
+        address: PARCEL_SALE,
+        abi: PARCEL_SALE_ABI,
+        functionName: 'getCurrentPrice',
       });
 
-      console.log('Approval transaction:', approveTx);
+      if (!currentPrice) {
+        throw new Error('Failed to fetch current price');
+      }
 
-      // Wait for approval to be mined
-      await new Promise(resolve => setTimeout(resolve, 3000));
-
-      // Purchase the parcel via ParcelSale contract
-      console.log(`Purchasing parcel #${tokenId}...`);
+      // PrimarySaleV3: Purchase next parcel with ETH (no LAND approval needed)
+      // It will automatically mint the next available parcel
+      console.log(`Purchasing next available parcel for ${formatEther(currentPrice as bigint)} ETH...`);
       const purchaseTx = await writeContractAsync({
         address: PARCEL_SALE,
         abi: PARCEL_SALE_ABI,
-        functionName: 'purchaseParcel',
-        args: [BigInt(tokenId)],
+        functionName: 'purchaseNextParcel',
+        args: [], // No arguments - buys next in sequence
+        value: currentPrice as bigint, // Pay with ETH
       });
 
       console.log('Purchase transaction:', purchaseTx);
@@ -224,9 +272,15 @@ export function HyperLandProvider({ children }: { children: ReactNode }) {
     return allParcels.find(p => p.x === x && p.y === y);
   }
 
-  // Computed values
-  const userParcels = address
-    ? allParcels.filter(p => p.owner.toLowerCase() === address.toLowerCase())
+  // Computed values - merge blockchain-owned parcels with static metadata
+  const userParcels = address && ownedTokenIds.length > 0
+    ? allParcels
+        .filter(p => ownedTokenIds.includes(p.tokenId))
+        .map(p => ({
+          ...p,
+          owner: address, // Set actual owner
+          listing: undefined, // Remove listing if owned
+        }))
     : [];
 
   const listedParcels = allParcels.filter(p => p.listing);

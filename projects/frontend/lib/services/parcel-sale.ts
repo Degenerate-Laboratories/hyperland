@@ -40,12 +40,13 @@ export function usePurchaseParcel() {
       throw new Error('Failed to fetch current price');
     }
 
-    // Execute purchase with current bonding curve price
+    // PrimarySaleV3 uses purchaseNextParcel() - no parcel number needed
+    // It automatically sells the next available parcel in sequence
     const txHash = await writeContractAsync({
       address: PARCEL_SALE,
       abi: PARCEL_SALE_ABI,
-      functionName: 'purchaseParcel',
-      args: [BigInt(parcelNumber)],
+      functionName: 'purchaseNextParcel',
+      args: [], // No arguments - buys next available parcel
       value: currentPrice,
     });
 
@@ -103,40 +104,46 @@ export function useBondingCurveStats() {
 }
 
 /**
- * Hook for checking if a parcel is available
+ * Hook for getting parcel configuration (V3)
+ * Returns parcel details from PrimarySaleV3
  */
-export function useParcelAvailability(parcelNumber: number) {
-  const { data: isAvailable } = useReadContract({
+export function useParcelConfig(tokenId: number) {
+  const { data: config } = useReadContract({
     address: PARCEL_SALE,
     abi: PARCEL_SALE_ABI,
-    functionName: 'isAvailable',
-    args: [BigInt(parcelNumber)],
+    functionName: 'getParcelConfig',
+    args: [BigInt(tokenId)],
   });
 
+  if (!config) return null;
+
   return {
-    isAvailable: !!isAvailable,
+    x: Number(config[0]),
+    y: Number(config[1]),
+    size: Number(config[2]),
+    assessedValue: config[3],
+    price: config[4],
+    priceETH: formatEther(config[4]),
+    available: config[5],
   };
 }
 
 /**
- * Hook for getting parcel details
+ * Hook for checking if a parcel is available (V3)
+ * Checks if parcel is configured and not yet sold
  */
-export function useParcelDetails(parcelNumber: number) {
-  const { data: parcel } = useReadContract({
-    address: PARCEL_SALE,
-    abi: PARCEL_SALE_ABI,
-    functionName: 'getParcel',
-    args: [BigInt(parcelNumber)],
-  });
-
-  if (!parcel) return null;
+export function useParcelAvailability(tokenId: number) {
+  const config = useParcelConfig(tokenId);
 
   return {
-    x: Number(parcel[0]),
-    y: Number(parcel[1]),
-    size: Number(parcel[2]),
-    price: parcel[3],
-    priceETH: formatEther(parcel[3]),
-    sold: parcel[4],
+    isAvailable: config?.available ?? false,
   };
+}
+
+/**
+ * Hook for getting parcel details (V3)
+ * Alias for useParcelConfig for backwards compatibility
+ */
+export function useParcelDetails(tokenId: number) {
+  return useParcelConfig(tokenId);
 }
