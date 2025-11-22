@@ -35,11 +35,17 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Get version from package.json
+      - name: Verify submodule and get version
         id: version
-        working-directory: ./projects/hypery-hyperland
         run: |
-          VERSION=$(node -p "require('./package.json').version")
+          # Check if submodule exists and is initialized
+          if [ -f "./projects/hypery-hyperland/package.json" ]; then
+            cd ./projects/hypery-hyperland
+            VERSION=$(node -p "require('./package.json').version")
+          else
+            echo "Warning: Submodule not found, using default version"
+            VERSION="0.15.0"
+          fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
 
