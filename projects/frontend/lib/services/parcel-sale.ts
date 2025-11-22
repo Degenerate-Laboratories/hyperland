@@ -32,7 +32,7 @@ export function usePurchaseParcel() {
   const { data: currentPrice } = useReadContract({
     address: PARCEL_SALE,
     abi: PARCEL_SALE_ABI,
-    functionName: 'getCurrentPrice',
+    functionName: 'getCurrentETHPrice',
   });
 
   async function purchaseParcel(parcelNumber: number): Promise<`0x${string}`> {
@@ -77,7 +77,7 @@ export function useBondingCurveStats() {
   const { data: currentPrice } = useReadContract({
     address: PARCEL_SALE,
     abi: PARCEL_SALE_ABI,
-    functionName: 'getCurrentPrice',
+    functionName: 'getCurrentETHPrice',
   });
 
   if (!stats || !currentPrice) {
@@ -92,9 +92,9 @@ export function useBondingCurveStats() {
     totalParcels: Number(stats[0]),
     soldCount: Number(stats[1]),
     availableCount: Number(stats[2]),
-    totalETHCollected: stats[3],
-    totalLiquidityCreated: stats[4],
-    totalLPBurned: stats[5],
+    totalETHCollected: stats[4],       // index 3 is currentETHPrice
+    totalLiquidityCreated: stats[5],
+    totalLPBurned: stats[6],
   };
 
   return {
@@ -104,32 +104,33 @@ export function useBondingCurveStats() {
 }
 
 /**
- * Hook for getting parcel configuration (V3)
- * Returns parcel details from PrimarySaleV3
+ * Hook for getting parcel configuration
+ * Returns parcel details from PrimarySale
  */
 export function useParcelConfig(tokenId: number) {
-  const { data: config } = useReadContract({
+  const { data: parcel } = useReadContract({
     address: PARCEL_SALE,
     abi: PARCEL_SALE_ABI,
-    functionName: 'getParcelConfig',
+    functionName: 'getParcel',
     args: [BigInt(tokenId)],
   });
 
-  if (!config) return null;
+  if (!parcel) return null;
 
   return {
-    x: Number(config[0]),
-    y: Number(config[1]),
-    size: Number(config[2]),
-    assessedValue: config[3],
-    price: config[4],
-    priceETH: formatEther(config[4]),
-    available: config[5],
+    x: Number(parcel[0]),
+    y: Number(parcel[1]),
+    size: Number(parcel[2]),
+    exists: parcel[3],
+    sold: parcel[4],
+    price: parcel[5],
+    priceETH: formatEther(parcel[5]),
+    available: parcel[3] && !parcel[4], // exists && !sold
   };
 }
 
 /**
- * Hook for checking if a parcel is available (V3)
+ * Hook for checking if a parcel is available
  * Checks if parcel is configured and not yet sold
  */
 export function useParcelAvailability(tokenId: number) {
@@ -141,7 +142,7 @@ export function useParcelAvailability(tokenId: number) {
 }
 
 /**
- * Hook for getting parcel details (V3)
+ * Hook for getting parcel details
  * Alias for useParcelConfig for backwards compatibility
  */
 export function useParcelDetails(tokenId: number) {

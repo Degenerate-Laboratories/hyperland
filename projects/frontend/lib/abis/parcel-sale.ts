@@ -3,7 +3,7 @@ export const PARCEL_SALE_ABI = [
     "type": "constructor",
     "inputs": [
       {
-        "name": "_hyperLandCore",
+        "name": "_core",
         "type": "address",
         "internalType": "address"
       },
@@ -114,6 +114,29 @@ export const PARCEL_SALE_ABI = [
   },
   {
     "type": "function",
+    "name": "addParcel",
+    "inputs": [
+      {
+        "name": "x",
+        "type": "int256",
+        "internalType": "int256"
+      },
+      {
+        "name": "y",
+        "type": "int256",
+        "internalType": "int256"
+      },
+      {
+        "name": "size",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "addParcelsBatch",
     "inputs": [
       {
@@ -128,11 +151,6 @@ export const PARCEL_SALE_ABI = [
       },
       {
         "name": "sizes",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
-      },
-      {
-        "name": "assessedValues",
         "type": "uint256[]",
         "internalType": "uint256[]"
       }
@@ -155,19 +173,21 @@ export const PARCEL_SALE_ABI = [
   },
   {
     "type": "function",
-    "name": "emergencyWithdrawETH",
-    "inputs": [
+    "name": "core",
+    "inputs": [],
+    "outputs": [
       {
-        "name": "to",
+        "name": "",
         "type": "address",
-        "internalType": "address payable"
-      },
-      {
-        "name": "amount",
-        "type": "uint256",
-        "internalType": "uint256"
+        "internalType": "contract HyperLandCore"
       }
     ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "emergencyWithdrawETH",
+    "inputs": [],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
@@ -179,16 +199,6 @@ export const PARCEL_SALE_ABI = [
         "name": "token",
         "type": "address",
         "internalType": "address"
-      },
-      {
-        "name": "to",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "amount",
-        "type": "uint256",
-        "internalType": "uint256"
       }
     ],
     "outputs": [],
@@ -196,7 +206,7 @@ export const PARCEL_SALE_ABI = [
   },
   {
     "type": "function",
-    "name": "getCurrentPrice",
+    "name": "getCurrentETHPrice",
     "inputs": [],
     "outputs": [
       {
@@ -209,10 +219,29 @@ export const PARCEL_SALE_ABI = [
   },
   {
     "type": "function",
-    "name": "getParcelConfig",
+    "name": "getETHPriceAt",
     "inputs": [
       {
-        "name": "tokenId",
+        "name": "parcelNumber",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getParcel",
+    "inputs": [
+      {
+        "name": "parcelId",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -234,17 +263,12 @@ export const PARCEL_SALE_ABI = [
         "internalType": "uint256"
       },
       {
-        "name": "assessedValue",
-        "type": "uint256",
-        "internalType": "uint256"
+        "name": "exists",
+        "type": "bool",
+        "internalType": "bool"
       },
       {
-        "name": "price",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "available",
+        "name": "sold",
         "type": "bool",
         "internalType": "bool"
       }
@@ -253,45 +277,16 @@ export const PARCEL_SALE_ABI = [
   },
   {
     "type": "function",
-    "name": "getPriceAt",
-    "inputs": [
-      {
-        "name": "parcelNumber",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "pure"
-  },
-  {
-    "type": "function",
     "name": "getStats",
     "inputs": [],
     "outputs": [
       {
-        "name": "_totalParcelsConfigured",
+        "name": "_totalParcels",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "_parcelsSold",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "_parcelsAvailable",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "_currentPrice",
+        "name": "_sold",
         "type": "uint256",
         "internalType": "uint256"
       },
@@ -315,13 +310,19 @@ export const PARCEL_SALE_ABI = [
   },
   {
     "type": "function",
-    "name": "hyperLandCore",
-    "inputs": [],
+    "name": "isAvailable",
+    "inputs": [
+      {
+        "name": "parcelId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "outputs": [
       {
         "name": "",
-        "type": "address",
-        "internalType": "contract HyperLandCore"
+        "type": "bool",
+        "internalType": "bool"
       }
     ],
     "stateMutability": "view"
@@ -341,7 +342,20 @@ export const PARCEL_SALE_ABI = [
   },
   {
     "type": "function",
-    "name": "nextTokenId",
+    "name": "liquidityPool",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "nextParcelId",
     "inputs": [],
     "outputs": [
       {
@@ -367,7 +381,7 @@ export const PARCEL_SALE_ABI = [
   },
   {
     "type": "function",
-    "name": "parcelConfigs",
+    "name": "parcels",
     "inputs": [
       {
         "name": "",
@@ -392,27 +406,14 @@ export const PARCEL_SALE_ABI = [
         "internalType": "uint256"
       },
       {
-        "name": "assessedValue",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "configured",
+        "name": "exists",
         "type": "bool",
         "internalType": "bool"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "pool",
-    "inputs": [],
-    "outputs": [
+      },
       {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
+        "name": "sold",
+        "type": "bool",
+        "internalType": "bool"
       }
     ],
     "stateMutability": "view"
@@ -423,7 +424,12 @@ export const PARCEL_SALE_ABI = [
     "inputs": [],
     "outputs": [
       {
-        "name": "",
+        "name": "parcelId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "tokenId",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -445,14 +451,14 @@ export const PARCEL_SALE_ABI = [
       {
         "name": "",
         "type": "address",
-        "internalType": "contract IUniswapV2Router"
+        "internalType": "address"
       }
     ],
     "stateMutability": "view"
   },
   {
     "type": "function",
-    "name": "setPool",
+    "name": "setLiquidityPool",
     "inputs": [
       {
         "name": "_pool",
@@ -504,7 +510,7 @@ export const PARCEL_SALE_ABI = [
   },
   {
     "type": "function",
-    "name": "totalParcelsConfigured",
+    "name": "totalParcels",
     "inputs": [],
     "outputs": [
       {
@@ -546,7 +552,7 @@ export const PARCEL_SALE_ABI = [
     "name": "LPBurned",
     "inputs": [
       {
-        "name": "lpTokens",
+        "name": "amount",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
@@ -559,19 +565,19 @@ export const PARCEL_SALE_ABI = [
     "name": "LiquidityAdded",
     "inputs": [
       {
+        "name": "tokenAmount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
         "name": "ethAmount",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
       },
       {
-        "name": "landAmount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      },
-      {
-        "name": "lpTokens",
+        "name": "liquidity",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
@@ -600,10 +606,10 @@ export const PARCEL_SALE_ABI = [
   },
   {
     "type": "event",
-    "name": "ParcelConfigured",
+    "name": "ParcelAdded",
     "inputs": [
       {
-        "name": "tokenId",
+        "name": "parcelId",
         "type": "uint256",
         "indexed": true,
         "internalType": "uint256"
@@ -634,7 +640,7 @@ export const PARCEL_SALE_ABI = [
     "name": "ParcelPurchased",
     "inputs": [
       {
-        "name": "tokenId",
+        "name": "parcelId",
         "type": "uint256",
         "indexed": true,
         "internalType": "uint256"
@@ -646,28 +652,35 @@ export const PARCEL_SALE_ABI = [
         "internalType": "address"
       },
       {
-        "name": "x",
-        "type": "int256",
-        "indexed": false,
-        "internalType": "int256"
-      },
-      {
-        "name": "y",
-        "type": "int256",
-        "indexed": false,
-        "internalType": "int256"
-      },
-      {
-        "name": "priceETH",
+        "name": "ethPrice",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
       },
       {
-        "name": "parcelNumber",
+        "name": "assessedValueLAND",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
+      },
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PoolSet",
+    "inputs": [
+      {
+        "name": "pool",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
       }
     ],
     "anonymous": false

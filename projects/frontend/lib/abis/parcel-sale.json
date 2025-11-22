@@ -3,7 +3,7 @@
     "type": "constructor",
     "inputs": [
       {
-        "name": "_hyperLandCore",
+        "name": "_core",
         "type": "address",
         "internalType": "address"
       },
@@ -114,6 +114,29 @@
   },
   {
     "type": "function",
+    "name": "addParcel",
+    "inputs": [
+      {
+        "name": "x",
+        "type": "int256",
+        "internalType": "int256"
+      },
+      {
+        "name": "y",
+        "type": "int256",
+        "internalType": "int256"
+      },
+      {
+        "name": "size",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "addParcelsBatch",
     "inputs": [
       {
@@ -130,11 +153,6 @@
         "name": "sizes",
         "type": "uint256[]",
         "internalType": "uint256[]"
-      },
-      {
-        "name": "assessedValues",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
       }
     ],
     "outputs": [],
@@ -149,6 +167,19 @@
         "name": "",
         "type": "address",
         "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "core",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract HyperLandCore"
       }
     ],
     "stateMutability": "view"
@@ -196,7 +227,7 @@
   },
   {
     "type": "function",
-    "name": "getCurrentPrice",
+    "name": "getCurrentETHPrice",
     "inputs": [],
     "outputs": [
       {
@@ -209,10 +240,29 @@
   },
   {
     "type": "function",
-    "name": "getParcelConfig",
+    "name": "getETHPriceAt",
     "inputs": [
       {
-        "name": "tokenId",
+        "name": "parcelNumber",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "getParcel",
+    "inputs": [
+      {
+        "name": "parcelId",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -234,41 +284,22 @@
         "internalType": "uint256"
       },
       {
-        "name": "assessedValue",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "price",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "available",
+        "name": "exists",
         "type": "bool",
         "internalType": "bool"
+      },
+      {
+        "name": "sold",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "ethPrice",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getPriceAt",
-    "inputs": [
-      {
-        "name": "parcelNumber",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "pure"
   },
   {
     "type": "function",
@@ -276,22 +307,22 @@
     "inputs": [],
     "outputs": [
       {
-        "name": "_totalParcelsConfigured",
+        "name": "_totalParcels",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "_parcelsSold",
+        "name": "_soldCount",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "_parcelsAvailable",
+        "name": "_availableCount",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "_currentPrice",
+        "name": "_currentETHPrice",
         "type": "uint256",
         "internalType": "uint256"
       },
@@ -315,13 +346,19 @@
   },
   {
     "type": "function",
-    "name": "hyperLandCore",
-    "inputs": [],
+    "name": "isAvailable",
+    "inputs": [
+      {
+        "name": "parcelId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "outputs": [
       {
         "name": "",
-        "type": "address",
-        "internalType": "contract HyperLandCore"
+        "type": "bool",
+        "internalType": "bool"
       }
     ],
     "stateMutability": "view"
@@ -341,7 +378,20 @@
   },
   {
     "type": "function",
-    "name": "nextTokenId",
+    "name": "liquidityPool",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "nextParcelId",
     "inputs": [],
     "outputs": [
       {
@@ -367,7 +417,7 @@
   },
   {
     "type": "function",
-    "name": "parcelConfigs",
+    "name": "parcels",
     "inputs": [
       {
         "name": "",
@@ -392,27 +442,14 @@
         "internalType": "uint256"
       },
       {
-        "name": "assessedValue",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "configured",
+        "name": "exists",
         "type": "bool",
         "internalType": "bool"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "pool",
-    "inputs": [],
-    "outputs": [
+      },
       {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
+        "name": "sold",
+        "type": "bool",
+        "internalType": "bool"
       }
     ],
     "stateMutability": "view"
@@ -423,7 +460,12 @@
     "inputs": [],
     "outputs": [
       {
-        "name": "",
+        "name": "parcelId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "tokenId",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -445,14 +487,14 @@
       {
         "name": "",
         "type": "address",
-        "internalType": "contract IUniswapV2Router"
+        "internalType": "address"
       }
     ],
     "stateMutability": "view"
   },
   {
     "type": "function",
-    "name": "setPool",
+    "name": "setLiquidityPool",
     "inputs": [
       {
         "name": "_pool",
@@ -504,7 +546,7 @@
   },
   {
     "type": "function",
-    "name": "totalParcelsConfigured",
+    "name": "totalParcels",
     "inputs": [],
     "outputs": [
       {
@@ -600,10 +642,10 @@
   },
   {
     "type": "event",
-    "name": "ParcelConfigured",
+    "name": "ParcelAdded",
     "inputs": [
       {
-        "name": "tokenId",
+        "name": "parcelId",
         "type": "uint256",
         "indexed": true,
         "internalType": "uint256"
@@ -634,7 +676,7 @@
     "name": "ParcelPurchased",
     "inputs": [
       {
-        "name": "tokenId",
+        "name": "parcelId",
         "type": "uint256",
         "indexed": true,
         "internalType": "uint256"
@@ -646,28 +688,35 @@
         "internalType": "address"
       },
       {
-        "name": "x",
-        "type": "int256",
-        "indexed": false,
-        "internalType": "int256"
-      },
-      {
-        "name": "y",
-        "type": "int256",
-        "indexed": false,
-        "internalType": "int256"
-      },
-      {
-        "name": "priceETH",
+        "name": "ethPrice",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
       },
       {
-        "name": "parcelNumber",
+        "name": "assessedValueLAND",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
+      },
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PoolSet",
+    "inputs": [
+      {
+        "name": "pool",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
       }
     ],
     "anonymous": false

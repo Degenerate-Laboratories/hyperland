@@ -129,14 +129,14 @@ export function HyperLandProvider({ children }: { children: ReactNode }) {
       try {
         console.log('Fetching owned parcels from blockchain...');
 
-        // Get next token ID from PrimarySaleV3 (tells us how many have been sold)
-        const nextTokenId = await readContract(config, {
+        // Get next parcel ID from PrimarySale (tells us how many have been sold)
+        const nextParcelId = await readContract(config, {
           address: PARCEL_SALE,
           abi: PARCEL_SALE_ABI,
-          functionName: 'nextTokenId',
+          functionName: 'nextParcelId',
         });
 
-        const totalSold = Number(nextTokenId) - 1; // nextTokenId is 1-indexed
+        const totalSold = Number(nextParcelId) - 1; // nextParcelId is 1-indexed
         console.log(`Total parcels sold: ${totalSold}`);
 
         if (totalSold === 0) {
@@ -331,11 +331,11 @@ export function HyperLandProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // Get current price from PrimarySaleV3
+      // Get current price from PrimarySale
       const currentPrice = await readContract(config, {
         address: PARCEL_SALE,
         abi: PARCEL_SALE_ABI,
-        functionName: 'getCurrentPrice',
+        functionName: 'getCurrentETHPrice',
       });
 
       if (!currentPrice) {
