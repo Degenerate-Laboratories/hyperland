@@ -36,14 +36,12 @@ jobs:
           git submodule update --init --recursive --force
           echo "Submodule status:"
           git submodule status
-          echo "Checking hypery-hyperland structure..."
+          echo "Checking hypery-hyperland directory..."
           ls -la ./projects/hypery-hyperland/
-          echo "Checking hyperland nested submodule..."
-          ls -la ./projects/hypery-hyperland/hyperland/
           echo "Checking for Dockerfile..."
-          if [ -f "./projects/hypery-hyperland/hyperland/Dockerfile" ]; then
-            echo "✓ Dockerfile found in nested submodule"
-            head -5 ./projects/hypery-hyperland/hyperland/Dockerfile
+          if [ -f "./projects/hypery-hyperland/Dockerfile" ]; then
+            echo "✓ Dockerfile found"
+            head -5 ./projects/hypery-hyperland/Dockerfile
           else
             echo "✗ Dockerfile NOT found"
             exit 1
@@ -57,9 +55,9 @@ jobs:
       - name: Verify submodule and get version
         id: version
         run: |
-          # Check if nested submodule exists and is initialized
-          if [ -f "./projects/hypery-hyperland/hyperland/package.json" ]; then
-            cd ./projects/hypery-hyperland/hyperland
+          # Check if submodule exists and is initialized
+          if [ -f "./projects/hypery-hyperland/package.json" ]; then
+            cd ./projects/hypery-hyperland
             VERSION=$(node -p "require('./package.json').version")
           else
             echo "Warning: Submodule not found, using default version"
@@ -107,8 +105,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
-          context: ./projects/hypery-hyperland/hyperland
-          file: ./projects/hypery-hyperland/hyperland/Dockerfile
+          context: ./projects/hypery-hyperland
+          file: ./projects/hypery-hyperland/Dockerfile
           platforms: linux/amd64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
