@@ -4,6 +4,7 @@ import { ParcelCard } from '@/components/ParcelCard';
 import { useHyperLand } from '@/lib/hyperland-context';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function Marketplace() {
   const router = useRouter();
@@ -101,7 +102,7 @@ export default function Marketplace() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold">Marketplace</h1>
           <p className="text-gray-600 dark:text-gray-400">
@@ -110,37 +111,47 @@ export default function Marketplace() {
         </div>
 
         {/* Filter */}
-        <div className="flex gap-2">
+        <div className="flex gap-1 md:gap-2 w-full md:w-auto">
           <button
             onClick={() => setFilter('all')}
-            className={`px-4 py-2 rounded-lg font-medium ${
+            className={`px-2 py-1.5 md:px-4 md:py-2 rounded-md md:rounded-lg font-bold text-[10px] md:text-sm transition-all duration-200 whitespace-nowrap flex-1 md:flex-initial ${
               filter === 'all'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                ? 'bg-gradient-to-br from-cyan-500 to-purple-600 text-white'
+                : 'glass border border-white/20 text-white hover:border-cyan-400'
             }`}
           >
-            All ({listedParcels.length + auctionParcels.length})
+            <span className="hidden md:inline">All ({listedParcels.length + auctionParcels.length})</span>
+            <span className="md:hidden">All</span>
           </button>
           <button
             onClick={() => setFilter('listed')}
-            className={`px-4 py-2 rounded-lg font-medium ${
+            className={`px-2 py-1.5 md:px-4 md:py-2 rounded-md md:rounded-lg font-bold text-[10px] md:text-sm transition-all duration-200 whitespace-nowrap flex-1 md:flex-initial ${
               filter === 'listed'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                ? 'bg-gradient-to-br from-cyan-500 to-purple-600 text-white'
+                : 'glass border border-white/20 text-white hover:border-cyan-400'
             }`}
           >
-            Listed ({listedParcels.length})
+            <span className="hidden md:inline">Listed ({listedParcels.length})</span>
+            <span className="md:hidden">List</span>
           </button>
           <button
             onClick={() => setFilter('auction')}
-            className={`px-4 py-2 rounded-lg font-medium ${
+            className={`px-2 py-1.5 md:px-4 md:py-2 rounded-md md:rounded-lg font-bold text-[10px] md:text-sm transition-all duration-200 whitespace-nowrap flex-1 md:flex-initial ${
               filter === 'auction'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                ? 'bg-gradient-to-br from-cyan-500 to-purple-600 text-white'
+                : 'glass border border-white/20 text-white hover:border-cyan-400'
             }`}
           >
-            Auctions ({auctionParcels.length})
+            <span className="hidden md:inline">Auctions ({auctionParcels.length})</span>
+            <span className="md:hidden">Auct</span>
           </button>
+          <Link
+            href="/buy-land"
+            className="px-2 py-1.5 md:px-4 md:py-2 rounded-md md:rounded-lg font-bold text-[10px] md:text-sm transition-all duration-200 bg-gradient-to-br from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white whitespace-nowrap flex-1 md:flex-initial text-center"
+          >
+            <span className="hidden md:inline">Buy LAND</span>
+            <span className="md:hidden">Buy</span>
+          </Link>
         </div>
       </div>
 

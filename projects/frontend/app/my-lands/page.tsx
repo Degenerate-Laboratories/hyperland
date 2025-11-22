@@ -94,7 +94,7 @@ export default function MyLands() {
 
       {/* Buy LAND Section */}
       <div className="glass rounded-lg p-6 border border-white/20">
-        <h2 className="text-2xl font-bold mb-4 text-white">Buy LAND Tokens</h2>
+        <h2 className="text-2xl font-bold mb-4 text-cyan-400">Buy LAND Tokens</h2>
         <div className="flex gap-4">
           <input
             type="number"
