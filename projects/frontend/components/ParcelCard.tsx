@@ -56,7 +56,7 @@ export function ParcelCard({
       {/* Header */}
       <div className="flex justify-between items-start mb-3">
         <div>
-          <h3 className="font-bold text-lg text-white">Parcel #{parcel.tokenId}</h3>
+          <h3 className="font-bold text-lg text-cyan-400">Parcel #{parcel.tokenId}</h3>
           <p className="text-sm text-white/80">
             {formatCoordinates(parcel.x, parcel.y)}
           </p>

@@ -119,13 +119,13 @@ export default function BRCMap3D({ parcels, onParcelClick, selectedParcel }: BRC
     ctx.fill();
 
     // Draw marker
-    ctx.fillStyle = '#ec4899';
+    ctx.fillStyle = '#ffffff';
     ctx.beginPath();
     ctx.arc(0, 0, 100, 0, Math.PI * 2);
     ctx.fill();
 
     // Pulsing outer ring
-    ctx.strokeStyle = 'rgba(236, 72, 153, 0.6)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.arc(0, 0, 150, 0, Math.PI * 2);

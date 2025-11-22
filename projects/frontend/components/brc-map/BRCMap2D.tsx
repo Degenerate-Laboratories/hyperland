@@ -11,11 +11,13 @@ interface BRCMap2DProps {
 
 export default function BRCMap2D({ parcels, onParcelClick, selectedParcel }: BRCMap2DProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const logoImageRef = useRef<HTMLImageElement | null>(null);
   const [hoveredParcel, setHoveredParcel] = useState<BRCParcel | null>(null);
   const [transform, setTransform] = useState({ scale: 0.1, offsetX: 0, offsetY: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [initialized, setInitialized] = useState(false);
+  const [logoLoaded, setLogoLoaded] = useState(false);
 
   // Draw the map
   const drawMap = useCallback(() => {
@@ -57,9 +59,14 @@ export default function BRCMap2D({ parcels, onParcelClick, selectedParcel }: BRC
     // Draw The Man (center point)
     drawMan(ctx);
 
+    // Draw logo at center
+    if (logoLoaded && logoImageRef.current) {
+      drawLogo(ctx);
+    }
+
     // Restore context
     ctx.restore();
-  }, [parcels, selectedParcel, hoveredParcel, transform]);
+  }, [parcels, selectedParcel, hoveredParcel, transform, logoLoaded]);
 
   // Draw background grid (minimal Otherside.xyz style)
   const drawGrid = (ctx: CanvasRenderingContext2D) => {
@@ -84,19 +91,97 @@ export default function BRCMap2D({ parcels, onParcelClick, selectedParcel }: BRC
     }
   };
 
-  // Draw The Man marker
+  // Draw The Man marker with pulsating radiation animation
   const drawMan = (ctx: CanvasRenderingContext2D) => {
-    ctx.fillStyle = '#ec4899';
-    ctx.beginPath();
-    ctx.arc(0, 0, 100, 0, Math.PI * 2);
-    ctx.fill();
+    const time = Date.now() / 1000;
 
-    // Pulsing outer ring
-    ctx.strokeStyle = 'rgba(236, 72, 153, 0.5)';
-    ctx.lineWidth = 2;
+    // Draw multiple expanding radiation rings (slower and bigger)
+    for (let i = 0; i < 3; i++) {
+      const delay = i * 1.5; // Stagger each ring
+      const cycle = (time + delay) % 5; // 5 second cycle for each ring (slower)
+      const progress = cycle / 5; // 0 to 1
+
+      // Expand from 300 to 1000 radius (much bigger)
+      const radius = 300 + (progress * 700);
+
+      // Fade out as it expands
+      const opacity = (1 - progress) * 0.6;
+
+      if (opacity > 0.05) {
+        ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
+        ctx.lineWidth = 6 * (1 - progress * 0.5); // Thicker lines
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
+    // Center dot with subtle pulse (bigger)
+    const pulseScale = 1 + Math.sin(time * 1.5) * 0.15; // Slower, bigger pulse
+    const pulseRadius = 200 * pulseScale;
+
+    // Glow effect
+    ctx.save();
+    ctx.shadowColor = '#ffffff';
+    ctx.shadowBlur = 60;
+    ctx.fillStyle = '#ffffff';
     ctx.beginPath();
-    ctx.arc(0, 0, 150, 0, Math.PI * 2);
-    ctx.stroke();
+    ctx.arc(0, 0, pulseRadius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // Bright center
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(0, 0, pulseRadius * 0.5, 0, Math.PI * 2);
+    ctx.fill();
+  };
+
+  // Draw logo above the map with smooth animation
+  const drawLogo = (ctx: CanvasRenderingContext2D) => {
+    if (!logoImageRef.current) return;
+
+    // Smooth animation based on time (9 second cycle)
+    const time = Date.now() / 1000; // Convert to seconds
+    const cycle = time % 9; // 9 second cycle
+
+    // Smooth opacity pulse (0.25 to 0.45)
+    let opacity = 0.35 + Math.sin(cycle * Math.PI / 4.5) * 0.1;
+
+    // Very subtle scale pulse (0.98 to 1.02)
+    const scale = 1 + Math.sin(cycle * Math.PI / 3) * 0.02;
+
+    // Slow glitch effect (happens over 0.5 seconds every 9 seconds)
+    let glitchOffset = { x: 0, y: 0 };
+    if (cycle > 8.5 && cycle < 9) {
+      const glitchProgress = (cycle - 8.5) / 0.5; // 0 to 1 over 0.5 seconds
+      const glitchIntensity = Math.sin(glitchProgress * Math.PI); // Smooth in and out
+
+      // Brightness increase during glitch
+      opacity = opacity + glitchIntensity * 0.3;
+
+      // Position offset
+      glitchOffset = {
+        x: Math.sin(glitchProgress * Math.PI * 4) * 40 * glitchIntensity,
+        y: Math.cos(glitchProgress * Math.PI * 3) * 40 * glitchIntensity
+      };
+    }
+
+    const logoSize = 5000; // Even bigger size in map units (feet)
+    const yPosition = -6800; // Position above center
+
+    ctx.save();
+    ctx.globalAlpha = Math.min(opacity, 1); // Cap at 1
+    ctx.translate(glitchOffset.x, yPosition + glitchOffset.y);
+    ctx.scale(scale, scale);
+    ctx.drawImage(
+      logoImageRef.current,
+      -logoSize / 2,
+      -logoSize / 2,
+      logoSize,
+      logoSize
+    );
+    ctx.restore();
   };
 
   // Draw ring boundaries (major section boundaries)
@@ -196,33 +281,51 @@ export default function BRCMap2D({ parcels, onParcelClick, selectedParcel }: BRC
     });
   };
 
-  // Get color scheme for each major band/section
-  const getBandColor = (band: string): { fill: string; stroke: string } => {
+  // Get gradient color for parcel based on band and sector
+  const getBandColor = (band: string, parcelId: string): { fill: string; stroke: string } => {
+    // Use parcel ID to create consistent color variation (hash-based)
+    const hash = parcelId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const variation = (hash % 100) / 100; // 0 to 1 range
+
     switch (band) {
       case 'Esplanade':
+        // Cyan gradient: light to dark
+        const cyanShade = Math.floor(120 + variation * 140); // 120-260 range
         return {
-          fill: 'rgba(6, 182, 212, 0.75)',      // Cyan
-          stroke: 'rgba(6, 182, 212, 1)'
+          fill: `rgba(${Math.floor(cyanShade * 0.03)}, ${cyanShade}, ${Math.floor(cyanShade * 0.95)}, 0.75)`,
+          stroke: `rgba(${Math.floor(cyanShade * 0.03)}, ${cyanShade}, ${Math.floor(cyanShade * 0.95)}, 1)`
         };
       case 'Afanc':
+        // Blue gradient: light to dark
+        const blueShade = Math.floor(100 + variation * 170); // 100-270 range
         return {
-          fill: 'rgba(59, 130, 246, 0.75)',     // Blue
-          stroke: 'rgba(59, 130, 246, 1)'
+          fill: `rgba(${Math.floor(blueShade * 0.3)}, ${Math.floor(blueShade * 0.6)}, ${blueShade}, 0.75)`,
+          stroke: `rgba(${Math.floor(blueShade * 0.3)}, ${Math.floor(blueShade * 0.6)}, ${blueShade}, 1)`
         };
       case 'MidCity':
+        // Purple gradient: light to dark
+        const purpleR = Math.floor(130 + variation * 90); // 130-220
+        const purpleB = Math.floor(200 + variation * 55); // 200-255
         return {
-          fill: 'rgba(168, 85, 247, 0.75)',     // Purple
-          stroke: 'rgba(168, 85, 247, 1)'
+          fill: `rgba(${purpleR}, ${Math.floor(purpleR * 0.4)}, ${purpleB}, 0.75)`,
+          stroke: `rgba(${purpleR}, ${Math.floor(purpleR * 0.4)}, ${purpleB}, 1)`
         };
       case 'Igopogo':
+        // Orange gradient: light to dark
+        const orangeR = Math.floor(220 + variation * 35); // 220-255
+        const orangeG = Math.floor(80 + variation * 70); // 80-150
         return {
-          fill: 'rgba(249, 115, 22, 0.75)',     // Orange
-          stroke: 'rgba(249, 115, 22, 1)'
+          fill: `rgba(${orangeR}, ${orangeG}, ${Math.floor(orangeG * 0.2)}, 0.75)`,
+          stroke: `rgba(${orangeR}, ${orangeG}, ${Math.floor(orangeG * 0.2)}, 1)`
         };
       case 'Kraken':
+        // Pink/Magenta gradient: light to dark
+        const pinkR = Math.floor(200 + variation * 55); // 200-255
+        const pinkG = Math.floor(50 + variation * 80); // 50-130
+        const pinkB = Math.floor(130 + variation * 80); // 130-210
         return {
-          fill: 'rgba(236, 72, 153, 0.75)',     // Pink/Magenta
-          stroke: 'rgba(236, 72, 153, 1)'
+          fill: `rgba(${pinkR}, ${pinkG}, ${pinkB}, 0.75)`,
+          stroke: `rgba(${pinkR}, ${pinkG}, ${pinkB}, 1)`
         };
       default:
         return {
@@ -239,8 +342,8 @@ export default function BRCMap2D({ parcels, onParcelClick, selectedParcel }: BRC
     isSelected: boolean,
     isHovered: boolean
   ) => {
-    // Get base color for this band
-    const bandColors = getBandColor(parcel.band);
+    // Get gradient color for this band and parcel
+    const bandColors = getBandColor(parcel.band, parcel.id);
     let fillColor = bandColors.fill;
     let strokeColor = bandColors.stroke;
 
@@ -400,6 +503,16 @@ export default function BRCMap2D({ parcels, onParcelClick, selectedParcel }: BRC
     return inside;
   };
 
+  // Load logo image
+  useEffect(() => {
+    const img = new Image();
+    img.src = '/HyperLogo.png';
+    img.onload = () => {
+      logoImageRef.current = img;
+      setLogoLoaded(true);
+    };
+  }, []);
+
   // Reset to initial view when component mounts
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -440,10 +553,25 @@ export default function BRCMap2D({ parcels, onParcelClick, selectedParcel }: BRC
     return () => window.removeEventListener('resize', resizeCanvas);
   }, [drawMap]);
 
-  // Redraw when dependencies change
+  // Continuous animation loop (only start after initialization)
   useEffect(() => {
-    drawMap();
-  }, [drawMap]);
+    if (!initialized) return; // Wait for proper initial scale to be set
+
+    let animationFrameId: number;
+
+    const animate = () => {
+      drawMap();
+      animationFrameId = requestAnimationFrame(animate);
+    };
+
+    animate();
+
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, [drawMap, initialized]);
 
   return (
     <div className="relative overflow-hidden w-full h-screen flex items-center justify-center">

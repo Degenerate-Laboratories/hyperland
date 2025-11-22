@@ -12,7 +12,6 @@ export default function MyLands() {
     listParcel,
     payTaxes,
     isLoading,
-    isMockMode,
     address,
   } = useHyperLand();
 
@@ -82,11 +81,6 @@ export default function MyLands() {
           <p className="text-white/80">
             Manage your land parcels and LAND tokens
           </p>
-          {isMockMode && (
-            <p className="text-sm text-orange-400 mt-1">
-              🟠 Running in mock mode (offline data)
-            </p>
-          )}
         </div>
         <div className="glass px-6 py-3 rounded-lg border border-white/20">
           <p className="text-sm text-white/80">
@@ -100,7 +94,7 @@ export default function MyLands() {
 
       {/* Buy LAND Section */}
       <div className="glass rounded-lg p-6 border border-white/20">
-        <h2 className="text-2xl font-bold mb-4 text-white">Buy LAND Tokens</h2>
+        <h2 className="text-2xl font-bold mb-4 text-cyan-400">Buy LAND Tokens</h2>
         <div className="flex gap-4">
           <input
             type="number"
